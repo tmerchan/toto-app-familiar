@@ -172,7 +172,7 @@ export default function ContactsScreen() {
       </View>
 
       {/* Contenido centrado */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {activeTab === 'elderly' ? (
           <View style={styles.sectionCentered}>
             <View style={styles.infoCard}>
