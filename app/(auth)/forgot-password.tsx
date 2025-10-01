@@ -9,13 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { 
-  Mail, 
-  ArrowLeft,
-  Send,
-  Heart,
-  CheckCircle
-} from 'lucide-react-native';
+import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
 
