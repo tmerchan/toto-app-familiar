@@ -20,7 +20,7 @@ import { router } from 'expo-router';
 
 export default function MyProfileScreen() {
   const handleEditProfile = () => {
-    Alert.alert('Editar Perfil', 'Función de editar perfil próximamente');
+    router.push('/user-profile');
   };
 
   const handlePaymentMethod = () => {
