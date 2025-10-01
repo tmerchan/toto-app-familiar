@@ -29,11 +29,7 @@ export default function HomeScreen() {
   };
 
   const navigateToReminders = () => {
-    router.push('/(tabs)/calendar');
-  };
-
-  const navigateToHistory = () => {
-    router.push('/(tabs)/history');
+    router.push('/reminders');
   };
 
   return (
@@ -89,15 +85,6 @@ export default function HomeScreen() {
             </View>
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Configura recordatorios de medicación, citas y eventos</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={navigateToHistory}>
-            <View style={styles.actionIcon}>
-              <AlertTriangle size={28} color="white" />
-            </View>
-            <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Revisa el historial de alertas</Text>
             </View>
           </TouchableOpacity>
         </View>
