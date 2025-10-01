@@ -52,6 +52,8 @@ export default function ContactsScreen() {
     emergencyContact: 'Tamara González - Hija',
   });
 
+  const [originalElderlyData, setOriginalElderlyData] = React.useState<ElderlyPerson>(elderlyData);
+
   const [trustedContacts, setTrustedContacts] = React.useState<TrustedContact[]>([
     { id: '1', name: 'Tamara González', relationship: 'Hija', phone: '+1 234 567 8901' },
     { id: '2', name: 'Dr. García', relationship: 'Médico', phone: '+1 234 567 8902' },
@@ -64,6 +66,7 @@ export default function ContactsScreen() {
   });
 
   const handleSaveElderlyData = () => {
+    setOriginalElderlyData(elderlyData);
     setIsEditing(false);
     Alert.alert('Éxito', 'Información guardada correctamente');
   };
@@ -71,7 +74,14 @@ export default function ContactsScreen() {
   const handleCancelEdit = () => {
     Alert.alert('Cancelar cambios', '¿Estás seguro de que quieres cancelar? Se perderán los cambios no guardados.', [
       { text: 'Continuar editando', style: 'cancel' },
-      { text: 'Cancelar', style: 'destructive', onPress: () => setIsEditing(false) },
+      {
+        text: 'Cancelar',
+        style: 'destructive',
+        onPress: () => {
+          setElderlyData(originalElderlyData);
+          setIsEditing(false);
+        }
+      },
     ]);
   };
 
@@ -179,7 +189,15 @@ export default function ContactsScreen() {
               {/* Cabecera dentro de la tarjeta con lápiz */}
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.sectionTitle}>Información de la Persona Mayor</Text>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => setIsEditing(!isEditing)}>
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => {
+                    if (!isEditing) {
+                      setOriginalElderlyData(elderlyData);
+                    }
+                    setIsEditing(!isEditing);
+                  }}
+                >
                   <Pencil size={20} color={BRAND} />
                 </TouchableOpacity>
               </View>
