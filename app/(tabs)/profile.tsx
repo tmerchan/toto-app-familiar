@@ -49,9 +49,7 @@ export default function MyProfileScreen() {
           text: 'Cerrar Sesión',
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente', [
-              { text: 'OK', onPress: () => router.replace('/(auth)/login') },
-            ]);
+            router.replace('/(auth)/login');
           },
         },
       ]
