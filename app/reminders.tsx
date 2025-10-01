@@ -9,8 +9,9 @@ import {
   Modal,
   Switch
 } from 'react-native';
-import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell } from 'lucide-react-native';
+import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell, ChevronLeft } from 'lucide-react-native';
 import { useState } from 'react';
+import { router } from 'expo-router';
 
 /* ===================== utils de formato/validación ===================== */
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
@@ -390,6 +391,9 @@ export default function RemindersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ChevronLeft size={24} color="#1F2937" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Recordatorios</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
           <Plus size={24} color="white" />
@@ -658,9 +662,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'PlayfairDisplay-Bold',
     color: '#1F2937',
   },
   addButton: {
