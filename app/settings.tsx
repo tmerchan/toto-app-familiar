@@ -42,7 +42,7 @@ export default function SettingsScreen() {
     Alert.alert(
       'Configuración Guardada',
       'Los cambios se han guardado correctamente.',
-      [{ text: 'OK', onPress: () => { setHasChanges(false); router.back(); } }]
+      [{ text: 'OK', onPress: () => { setHasChanges(false); router.push('/(tabs)/profile'); } }]
     );
   };
 
@@ -53,11 +53,11 @@ export default function SettingsScreen() {
         '¿Estás seguro de que quieres descartar los cambios?',
         [
           { text: 'Continuar Editando', style: 'cancel' },
-          { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
+          { text: 'Descartar', style: 'destructive', onPress: () => router.push('/(tabs)/profile') },
         ]
       );
     } else {
-      router.back();
+      router.push('/(tabs)/profile');
     }
   };
 

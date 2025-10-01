@@ -83,7 +83,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               style={styles.backToLoginButton}
-              onPress={() => router.back()}
+              onPress={() => router.push('/(auth)/login')}
             >
               <Text style={styles.backToLoginText}>Volver al inicio de sesión</Text>
             </TouchableOpacity>

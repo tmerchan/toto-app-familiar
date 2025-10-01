@@ -118,7 +118,7 @@ export default function HelpScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="white" />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/profile')}>
           <ChevronLeft size={24} color={BRAND} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ayuda y Soporte</Text>

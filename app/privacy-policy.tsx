@@ -22,7 +22,7 @@ export default function PrivacyPolicyScreen() {
       'Términos Aceptados',
       'Has aceptado los términos y condiciones.',
       [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'OK', onPress: () => router.push('/(tabs)/profile') }
       ]
     );
   };
@@ -32,9 +32,9 @@ export default function PrivacyPolicyScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push('/(tabs)/profile')}
         >
           <ChevronLeft size={24} color={BRAND} />
         </TouchableOpacity>
