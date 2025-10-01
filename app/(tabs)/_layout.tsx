@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Users, CircleUser } from 'lucide-react-native';
+import { Home, Users, CircleUser, Bell, Clock } from 'lucide-react-native';
 
 const BRAND = '#6B8E23';
 
@@ -35,6 +35,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Recordatorios',
+          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Historial',
+          tabBarIcon: ({ size, color }) => <Clock size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="contacts"
         options={{
           title: 'Contactos',
@@ -44,20 +58,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Mi Perfil',
+          title: 'Perfil',
           tabBarIcon: ({ size, color }) => <CircleUser size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          href: null,
         }}
       />
     </Tabs>
