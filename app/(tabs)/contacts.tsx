@@ -416,12 +416,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: { borderBottomColor: BRAND },
-  tabText: { fontSize: 16, color: '#666', fontWeight: '400' },
-  activeTabText: { color: BRAND, fontWeight: '400' },
+  tabText: { fontSize: 16, color: '#666', fontWeight: '400', textAlign: 'center' },
+  activeTabText: { color: BRAND, fontWeight: '400', textAlign: 'center' },
 
   content: {
     flex: 1,
