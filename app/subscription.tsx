@@ -27,6 +27,8 @@ interface Module {
   isCore: boolean;
 }
 
+const BASE_PRICE = 10000;
+
 const modules: Module[] = [
   {
     id: 'registration',
@@ -60,23 +62,20 @@ const modules: Module[] = [
     id: 'assistant',
     name: 'Asistencia en Rutinas',
     description: 'Asistente de voz "Toto" para ayuda diaria',
-    price: 5000,
-    isCore: false,
+    price: 0,
+    isCore: true,
   },
   {
     id: 'entertainment',
     name: 'Entretenimiento',
     description: 'Música y juegos de estimulación',
-    price: 3000,
-    isCore: false,
+    price: 0,
+    isCore: true,
   },
 ];
 
 export default function SubscriptionScreen() {
   const router = useRouter();
-  const [selectedModules, setSelectedModules] = useState<string[]>(
-    modules.filter(m => m.isCore).map(m => m.id)
-  );
 
   const navigateBack = () => {
     try {
@@ -84,23 +83,6 @@ export default function SubscriptionScreen() {
     } catch (error) {
       console.error('Navigation error:', error);
     }
-  };
-
-  const toggleModule = (moduleId: string) => {
-    const module = modules.find(m => m.id === moduleId);
-    if (module?.isCore) return;
-
-    if (selectedModules.includes(moduleId)) {
-      setSelectedModules(selectedModules.filter(id => id !== moduleId));
-    } else {
-      setSelectedModules([...selectedModules, moduleId]);
-    }
-  };
-
-  const calculateTotal = () => {
-    return modules
-      .filter(m => selectedModules.includes(m.id))
-      .reduce((total, m) => total + m.price, 0);
   };
 
   const handleGooglePay = () => {
@@ -113,10 +95,9 @@ export default function SubscriptionScreen() {
       return;
     }
 
-    const total = calculateTotal();
     Alert.alert(
       'Google Pay',
-      `Procesando pago de $${total.toLocaleString('es-CL')} CLP con Google Pay.\n\nEsta función requiere integración con servicios de pago nativos.`,
+      `Procesando pago de $${BASE_PRICE.toLocaleString('es-CL')} CLP con Google Pay.\n\nEsta función requiere integración con servicios de pago nativos.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -132,10 +113,9 @@ export default function SubscriptionScreen() {
   };
 
   const handleCreditCard = () => {
-    const total = calculateTotal();
     Alert.alert(
       'Pago con Tarjeta',
-      `Procesando pago de $${total.toLocaleString('es-CL')} CLP con tarjeta de crédito/débito.\n\nEsta función requiere integración con un procesador de pagos.`,
+      `Procesando pago de $${BASE_PRICE.toLocaleString('es-CL')} CLP con tarjeta de crédito/débito.\n\nEsta función requiere integración con un procesador de pagos.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -165,90 +145,46 @@ export default function SubscriptionScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Plan Personalizado</Text>
+            <Text style={styles.infoTitle}>Suscripción Completa de Toto</Text>
             <Text style={styles.infoText}>
-              Selecciona los módulos adicionales que deseas agregar a tu plan base.
-              Los módulos básicos están siempre incluidos para tu seguridad.
+              Accede a todos los módulos de Toto para el cuidado integral de personas mayores.
+              Todos los módulos están incluidos en tu suscripción mensual.
             </Text>
           </View>
 
-          <Text style={styles.sectionTitle}>Módulos Incluidos (Gratuitos)</Text>
-          {modules
-            .filter(m => m.isCore)
-            .map(module => (
-              <View key={module.id} style={styles.moduleCard}>
-                <View style={styles.moduleInfo}>
-                  <View style={styles.checkIcon}>
-                    <Check size={20} color={BRAND} />
-                  </View>
-                  <View style={styles.moduleText}>
-                    <Text style={styles.moduleName}>{module.name}</Text>
-                    <Text style={styles.moduleDescription}>
-                      {module.description}
-                    </Text>
-                  </View>
+          <Text style={styles.sectionTitle}>Módulos Incluidos</Text>
+          {modules.map(module => (
+            <View key={module.id} style={styles.moduleCard}>
+              <View style={styles.moduleInfo}>
+                <View style={styles.checkIcon}>
+                  <Check size={20} color={BRAND} />
                 </View>
-                <View style={styles.freeTag}>
-                  <Text style={styles.freeText}>Incluido</Text>
+                <View style={styles.moduleText}>
+                  <Text style={styles.moduleName}>{module.name}</Text>
+                  <Text style={styles.moduleDescription}>
+                    {module.description}
+                  </Text>
                 </View>
               </View>
-            ))}
-
-          <Text style={styles.sectionTitle}>Módulos Opcionales</Text>
-          {modules
-            .filter(m => !m.isCore)
-            .map(module => (
-              <TouchableOpacity
-                key={module.id}
-                style={[
-                  styles.moduleCard,
-                  selectedModules.includes(module.id) && styles.moduleCardSelected,
-                ]}
-                onPress={() => toggleModule(module.id)}
-              >
-                <View style={styles.moduleInfo}>
-                  <View
-                    style={[
-                      styles.checkIcon,
-                      selectedModules.includes(module.id)
-                        ? styles.checkIconSelected
-                        : styles.checkIconUnselected,
-                    ]}
-                  >
-                    {selectedModules.includes(module.id) && (
-                      <Check size={20} color="white" />
-                    )}
-                  </View>
-                  <View style={styles.moduleText}>
-                    <Text style={styles.moduleName}>{module.name}</Text>
-                    <Text style={styles.moduleDescription}>
-                      {module.description}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.modulePrice}>
-                  ${module.price.toLocaleString('es-CL')}
-                </Text>
-              </TouchableOpacity>
-            ))}
+              <View style={styles.freeTag}>
+                <Text style={styles.freeText}>Incluido</Text>
+              </View>
+            </View>
+          ))}
 
           <View style={styles.totalSection}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Módulos Básicos</Text>
-              <Text style={styles.totalValue}>Gratis</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Módulos Adicionales</Text>
-              <Text style={styles.totalValue}>
-                ${calculateTotal().toLocaleString('es-CL')} CLP
+              <Text style={styles.totalLabelBold}>Suscripción Mensual</Text>
+              <Text style={styles.totalValueBold}>
+                ${BASE_PRICE.toLocaleString('es-CL')} CLP
               </Text>
             </View>
             <View style={styles.divider} />
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabelBold}>Total Mensual</Text>
-              <Text style={styles.totalValueBold}>
-                ${calculateTotal().toLocaleString('es-CL')} CLP
-              </Text>
+            <View style={styles.benefitsList}>
+              <Text style={styles.benefitItem}>✓ Todos los 6 módulos incluidos</Text>
+              <Text style={styles.benefitItem}>✓ Actualizaciones automáticas</Text>
+              <Text style={styles.benefitItem}>✓ Soporte técnico prioritario</Text>
+              <Text style={styles.benefitItem}>✓ Sin compromisos, cancela cuando quieras</Text>
             </View>
           </View>
 
@@ -515,5 +451,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     lineHeight: 18,
+  },
+  benefitsList: {
+    marginTop: 8,
+  },
+  benefitItem: {
+    fontSize: 14,
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 20,
   },
 });

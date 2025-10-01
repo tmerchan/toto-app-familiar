@@ -8,15 +8,13 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import { ChevronLeft, Shield, Bell, Volume2, Vibrate, Smartphone, MessageCircle, Music, Mic } from 'lucide-react-native';
+import { ChevronLeft, Bell, Volume2, Vibrate } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 const BRAND = '#6B8E23';
 
-interface ModuleSettings {
-  entertainment_enabled: boolean;
-  assistant_enabled: boolean;
+interface NotificationSettings {
   notifications_enabled: boolean;
   sounds_enabled: boolean;
   vibration_enabled: boolean;
@@ -24,9 +22,7 @@ interface ModuleSettings {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const [settings, setSettings] = useState<ModuleSettings>({
-    entertainment_enabled: false,
-    assistant_enabled: false,
+  const [settings, setSettings] = useState<NotificationSettings>({
     notifications_enabled: true,
     sounds_enabled: true,
     vibration_enabled: true,
@@ -34,7 +30,7 @@ export default function SettingsScreen() {
 
   const [hasChanges, setHasChanges] = useState(false);
 
-  const updateSetting = (key: keyof ModuleSettings, value: boolean) => {
+  const updateSetting = (key: keyof NotificationSettings, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -93,124 +89,11 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <View style={styles.infoBox}>
-            <Shield size={24} color={BRAND} />
+            <Bell size={24} color={BRAND} />
             <Text style={styles.infoText}>
-              Los módulos de Registro, Prevención (Caídas), Recordatorios y Comunicación son esenciales y siempre están activos para garantizar tu seguridad.
+              Configura cómo deseas recibir las notificaciones y alertas de Toto.
+              Estas preferencias afectan recordatorios, alertas de emergencia y mensajes.
             </Text>
-          </View>
-
-          <Text style={styles.sectionTitle}>Módulos Básicos (Siempre Activos)</Text>
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <Smartphone size={20} color={BRAND} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Registro</Text>
-                <Text style={styles.moduleDescription}>
-                  Gestión de perfil e información personal
-                </Text>
-              </View>
-            </View>
-            <View style={styles.activeIndicator}>
-              <Text style={styles.activeText}>Activo</Text>
-            </View>
-          </View>
-
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <Shield size={20} color={BRAND} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Prevención (Caídas)</Text>
-                <Text style={styles.moduleDescription}>
-                  Detección de caídas y emergencias
-                </Text>
-              </View>
-            </View>
-            <View style={styles.activeIndicator}>
-              <Text style={styles.activeText}>Activo</Text>
-            </View>
-          </View>
-
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <Bell size={20} color={BRAND} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Recordatorios</Text>
-                <Text style={styles.moduleDescription}>
-                  Medicamentos, citas y actividades
-                </Text>
-              </View>
-            </View>
-            <View style={styles.activeIndicator}>
-              <Text style={styles.activeText}>Activo</Text>
-            </View>
-          </View>
-
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <MessageCircle size={20} color={BRAND} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Comunicación</Text>
-                <Text style={styles.moduleDescription}>
-                  WhatsApp y llamadas con contactos
-                </Text>
-              </View>
-            </View>
-            <View style={styles.activeIndicator}>
-              <Text style={styles.activeText}>Activo</Text>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Módulos Opcionales</Text>
-          <Text style={styles.sectionDescription}>
-            Puedes activar o desactivar estos módulos según tus preferencias
-          </Text>
-
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <Music size={20} color={settings.entertainment_enabled ? BRAND : '#9CA3AF'} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Entretenimiento</Text>
-                <Text style={styles.moduleDescription}>
-                  Música, juegos y actividades recreativas
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={settings.entertainment_enabled}
-              onValueChange={(value) => updateSetting('entertainment_enabled', value)}
-              trackColor={{ false: '#D1D5DB', true: BRAND }}
-              thumbColor="white"
-            />
-          </View>
-
-          <View style={styles.moduleCard}>
-            <View style={styles.moduleInfo}>
-              <View style={styles.moduleIconContainer}>
-                <Mic size={20} color={settings.assistant_enabled ? BRAND : '#9CA3AF'} />
-              </View>
-              <View style={styles.moduleText}>
-                <Text style={styles.moduleName}>Asistencia en Rutinas</Text>
-                <Text style={styles.moduleDescription}>
-                  Asistente de voz "Toto" para ayuda diaria
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={settings.assistant_enabled}
-              onValueChange={(value) => updateSetting('assistant_enabled', value)}
-              trackColor={{ false: '#D1D5DB', true: BRAND }}
-              thumbColor="white"
-            />
           </View>
 
           <Text style={styles.sectionTitle}>Preferencias de Notificaciones</Text>
@@ -343,65 +226,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
     marginTop: 8,
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
     marginBottom: 12,
-    lineHeight: 20,
-  },
-  moduleCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  moduleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  moduleIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moduleText: {
-    flex: 1,
-  },
-  moduleName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  moduleDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  activeIndicator: {
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND,
-  },
-  activeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: BRAND,
   },
   preferenceCard: {
     backgroundColor: 'white',
