@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { ChevronLeft, AlertTriangle, HelpCircle, Pill, Check, X } from 'lucide-react-native';
+import { ChevronLeft, TriangleAlert as AlertTriangle, CircleHelp as HelpCircle, Pill, Check, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 
