@@ -1,15 +1,32 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  StatusBar
+  StatusBar,
+  Alert
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useState } from 'react';
+
+const BRAND = '#6B8E23';
 
 export default function PrivacyPolicyScreen() {
+  const [accepted, setAccepted] = useState(false);
+
+  const handleAccept = () => {
+    setAccepted(true);
+    Alert.alert(
+      'Términos Aceptados',
+      'Has aceptado los términos y condiciones.',
+      [
+        { text: 'OK', onPress: () => router.back() }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
@@ -19,7 +36,7 @@ export default function PrivacyPolicyScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <ChevronLeft size={24} color="#007AFF" />
+          <ChevronLeft size={24} color={BRAND} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Términos y Condiciones</Text>
         <View style={styles.placeholder} />
@@ -152,6 +169,17 @@ export default function PrivacyPolicyScreen() {
           <Text style={styles.paragraph}>
             Ante la baja, se eliminan de manera definitiva en un plazo razonable.
           </Text>
+
+          <TouchableOpacity
+            style={[styles.acceptButton, accepted && styles.acceptButtonDisabled]}
+            onPress={handleAccept}
+            disabled={accepted}
+          >
+            {accepted && <Check size={20} color="white" style={styles.checkIcon} />}
+            <Text style={styles.acceptButtonText}>
+              {accepted ? 'Términos Aceptados' : 'Aceptar Términos y Condiciones'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -183,7 +211,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#007AFF',
+    color: BRAND,
     textAlign: 'center',
   },
   placeholder: {
@@ -209,19 +237,42 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#007AFF',
+    color: BRAND,
     marginTop: 20,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#007AFF',
+    color: BRAND,
     marginTop: 16,
     marginBottom: 12,
   },
   bold: {
     fontWeight: '600',
     color: '#374151',
+  },
+  acceptButton: {
+    backgroundColor: BRAND,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 32,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  acceptButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  checkIcon: {
+    marginRight: 8,
+  },
+  acceptButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

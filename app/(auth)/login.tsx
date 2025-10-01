@@ -1,23 +1,22 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
+import {
+  Mail,
+  Lock,
+  Eye,
   EyeOff,
   ArrowRight,
   Heart
 } from 'lucide-react-native';
-import { Image } from 'react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
 
@@ -66,11 +65,9 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Image
-              source={require('@/assets/images/logo_toto.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <View style={styles.logoPlaceholder}>
+              <Text style={styles.logoText}>Toto</Text>
+            </View>
           </View>
           <Text style={styles.title}>Toto</Text>
           <Text style={styles.subtitle}>
@@ -203,9 +200,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  logoImage: {
-    width: 50,
-    height: 50,
+  logoPlaceholder: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#6B8E23',
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
   },
   title: {
     fontSize: 32,

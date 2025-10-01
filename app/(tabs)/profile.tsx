@@ -99,7 +99,7 @@ export default function MyProfileScreen() {
             <User size={20} color="#6B8E23" />,
             'Perfil',
             handleEditProfile,
-            '#F0F9FF'
+            '#F0FDF4'
           )}
 
           {renderMenuItem(
@@ -154,11 +154,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
     fontFamily: 'PlayfairDisplay-Bold',
     color: '#1F2937',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
