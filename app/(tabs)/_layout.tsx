@@ -35,20 +35,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Recordatorios',
-          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Historial',
-          tabBarIcon: ({ size, color }) => <Clock size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="contacts"
         options={{
           title: 'Contactos',
