@@ -27,37 +27,57 @@ interface TooltipInfo {
 const faqData: FAQItem[] = [
   {
     question: '¿Qué es Toto?',
-    answer: 'Toto es una aplicación de acompañamiento gerontológico diseñada para ayudar a personas mayores y sus cuidadores. Ofrece recordatorios de medicamentos, asistencia por voz, detección de emergencias y comunicación con familiares.',
+    answer: 'Toto es una aplicación de acompañamiento gerontológico diseñada para ayudar a personas mayores y sus cuidadores. Ofrece 6 módulos especializados: Registro, Prevención, Recordatorios, Comunicación, Asistencia en Rutinas y Entretenimiento.',
     category: 'general',
   },
   {
-    question: '¿Cómo configuro recordatorios de medicamentos?',
-    answer: 'Ve a la sección de Recordatorios en el menú principal, presiona el botón "+" y completa la información del medicamento incluyendo nombre, dosis, horario y frecuencia.',
+    question: '¿Qué es el Módulo de Registro?',
+    answer: 'Es la puerta de entrada al sistema. Permite al familiar o cuidador registrar a la persona mayor, cargar información de contactos de confianza y establecer parámetros de configuración inicial. Los datos se almacenan de forma segura y vinculan con credenciales de autenticación.',
+    category: 'general',
+  },
+  {
+    question: '¿Qué es el Módulo de Prevención (Caídas)?',
+    answer: 'Es el núcleo de seguridad del sistema. Funciona como un servicio en primer plano que permanece activo continuamente. Detecta sonidos compatibles con caídas, pedidos de auxilio o anomalías acústicas. Ante un evento crítico, activa confirmación por voz y si no hay respuesta, envía notificación inmediata por WhatsApp al cuidador.',
     category: 'features',
   },
   {
-    question: '¿Cómo funciona la detección de caídas?',
-    answer: 'Toto usa el micrófono del dispositivo para detectar sonidos característicos de caídas. Al detectar uno, envía alertas automáticas a los contactos de confianza. Esta función debe estar activada en los ajustes.',
+    question: '¿Qué es el Módulo de Recordatorios?',
+    answer: 'Permite configurar recordatorios programados para medicación, citas médicas o actividades cotidianas. Los recordatorios se gestionan desde el dispositivo del cuidador y se entregan en el momento oportuno con síntesis de voz y estímulos visuales, garantizando el cumplimiento de rutinas críticas para el bienestar.',
     category: 'features',
+  },
+  {
+    question: '¿Qué es el Módulo de Comunicación?',
+    answer: 'Permite la comunicación bidireccional entre la persona mayor y sus familiares mediante WhatsApp. Asegura que las notificaciones de emergencia y mensajes cotidianos se transmitan en un canal familiar, reduciendo la curva de aprendizaje. También permite iniciar llamadas directas a contactos registrados.',
+    category: 'features',
+  },
+  {
+    question: '¿Qué es el Módulo de Asistencia en Rutinas?',
+    answer: 'Provee acompañamiento cotidiano a través de interacción por voz. El adulto mayor activa el asistente diciendo "Toto" y puede emitir comandos simples. Ofrece información básica, sugerencias de hábitos saludables, recordatorios de rutinas preventivas, y puede ejecutar instrucciones prácticas como establecer alarmas o informar fecha y hora.',
+    category: 'features',
+  },
+  {
+    question: '¿Qué es el Módulo de Entretenimiento?',
+    answer: 'Diseñado para promover la estimulación cognitiva y el bienestar emocional. Permite acceder a actividades recreativas como reproducción de música mediante Spotify y juegos cognitivos básicos. Las actividades son fáciles de invocar por voz o botones de acceso rápido, reduciendo la soledad no deseada.',
+    category: 'features',
+  },
+  {
+    question: '¿Cómo configuro los módulos opcionales?',
+    answer: 'Los módulos de Registro, Prevención, Recordatorios y Comunicación están siempre activos por seguridad. Los módulos de Entretenimiento y Asistencia en Rutinas son opcionales y pueden activarse/desactivarse desde Configuración en tu perfil.',
+    category: 'general',
   },
   {
     question: '¿Cómo agrego contactos de confianza?',
-    answer: 'En la sección de Contactos, presiona el botón "+" y completa el nombre, relación y número de teléfono del contacto. Estos contactos recibirán alertas en caso de emergencias.',
+    answer: 'En la sección de Contactos, presiona el botón "+" y completa el nombre, relación y número de teléfono del contacto. Estos contactos recibirán alertas en caso de emergencias a través de WhatsApp.',
     category: 'general',
   },
   {
     question: '¿La app funciona sin conexión a internet?',
-    answer: 'Algunas funciones como los recordatorios locales funcionan sin internet, pero las alertas a contactos y el asistente de voz requieren conexión activa.',
+    answer: 'Algunas funciones como los recordatorios locales funcionan sin internet, pero las alertas a contactos por WhatsApp y el asistente de voz requieren conexión activa.',
     category: 'technical',
   },
   {
-    question: '¿Cómo uso el asistente de voz?',
-    answer: 'Di "Hola Toto" o presiona el botón del micrófono. Puedes pedirle información, que te cuente chistes, o que reproduzca música. El asistente usa comandos de voz simples.',
-    category: 'features',
-  },
-  {
     question: '¿Mis datos están seguros?',
-    answer: 'Sí. Todos los datos se almacenan de forma segura y encriptada. El audio se procesa localmente en el dispositivo y no se guarda en servidores externos. Lee nuestra Política de Privacidad para más información.',
+    answer: 'Sí. Todos los datos se almacenan de forma segura y encriptada en Supabase. El audio para detección de caídas se procesa localmente en el dispositivo. Lee nuestra Política de Privacidad para más información.',
     category: 'technical',
   },
   {
@@ -66,33 +86,41 @@ const faqData: FAQItem[] = [
     category: 'features',
   },
   {
-    question: '¿Qué hago si la app no detecta mi voz?',
-    answer: 'Asegúrate de haber dado permiso de micrófono a la app. Habla de forma clara y cerca del dispositivo. Verifica que no haya ruido ambiente excesivo. Si el problema persiste, reinicia la aplicación.',
+    question: '¿Qué hago si la detección de caídas no funciona?',
+    answer: 'Asegúrate de haber dado permiso de micrófono a la app y que el módulo de Prevención esté activo (siempre lo está por defecto). El servicio debe permanecer en primer plano. Si el problema persiste, verifica que no haya aplicaciones que interfieran con el micrófono.',
     category: 'technical',
   },
   {
     question: '¿Puedo tener múltiples cuidadores?',
-    answer: 'Sí. Puedes agregar varios contactos de confianza que actuarán como cuidadores y recibirán las alertas de emergencia.',
+    answer: 'Sí. Puedes agregar varios contactos de confianza que actuarán como cuidadores y recibirán las alertas de emergencia por WhatsApp.',
     category: 'general',
   },
 ];
 
 const tooltips: Record<string, TooltipInfo> = {
+  registration: {
+    title: 'Módulo de Registro',
+    description: 'Gestiona perfiles de personas mayores, contactos de confianza y parámetros de configuración. Es la base del sistema.',
+  },
+  prevention: {
+    title: 'Módulo de Prevención',
+    description: 'Servicio activo continuo que detecta caídas y pedidos de auxilio mediante análisis de sonido, enviando alertas inmediatas por WhatsApp.',
+  },
   reminders: {
-    title: 'Recordatorios',
-    description: 'Configura alertas para medicamentos y actividades. La app te notificará en los horarios programados.',
+    title: 'Módulo de Recordatorios',
+    description: 'Configura alertas para medicamentos, citas médicas y actividades. Notifica con voz y visuales en horarios programados.',
   },
-  contacts: {
-    title: 'Contactos de Confianza',
-    description: 'Personas que recibirán alertas automáticas en caso de emergencia. Pueden ser familiares, amigos o profesionales de salud.',
+  communication: {
+    title: 'Módulo de Comunicación',
+    description: 'Comunicación bidireccional con familiares vía WhatsApp. Incluye mensajes, alertas de emergencia y llamadas directas.',
   },
-  emergency: {
-    title: 'Detección de Emergencias',
-    description: 'Sistema automático que detecta caídas y palabras de auxilio, enviando alertas inmediatas a tus contactos.',
+  assistant: {
+    title: 'Módulo de Asistencia en Rutinas',
+    description: 'Asistente de voz activado con "Toto". Provee información, sugerencias de salud, establece alarmas e informa fecha/hora.',
   },
-  voice: {
-    title: 'Asistente de Voz',
-    description: 'Di "Hola Toto" para activarlo. Puede responder preguntas, contar chistes, reproducir música y más.',
+  entertainment: {
+    title: 'Módulo de Entretenimiento',
+    description: 'Estimulación cognitiva con música de Spotify y juegos. Fácil de usar por voz o botones, reduce la soledad.',
   },
 };
 
@@ -136,12 +164,28 @@ export default function HelpScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Ayuda Contextual</Text>
+          <Text style={styles.sectionTitle}>Los 6 Módulos de Toto</Text>
           <Text style={styles.description}>
-            Presiona los botones para obtener información rápida sobre cada función:
+            Presiona cada módulo para conocer su función y cómo ayuda en el cuidado:
           </Text>
 
           <View style={styles.tooltipGrid}>
+            <TouchableOpacity
+              style={styles.tooltipCard}
+              onPress={() => showTooltip('registration')}
+            >
+              <Info size={24} color={BRAND} />
+              <Text style={styles.tooltipTitle}>Registro</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tooltipCard}
+              onPress={() => showTooltip('prevention')}
+            >
+              <Info size={24} color={BRAND} />
+              <Text style={styles.tooltipTitle}>Prevención</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.tooltipCard}
               onPress={() => showTooltip('reminders')}
@@ -152,26 +196,26 @@ export default function HelpScreen() {
 
             <TouchableOpacity
               style={styles.tooltipCard}
-              onPress={() => showTooltip('contacts')}
+              onPress={() => showTooltip('communication')}
             >
               <Info size={24} color={BRAND} />
-              <Text style={styles.tooltipTitle}>Contactos</Text>
+              <Text style={styles.tooltipTitle}>Comunicación</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.tooltipCard}
-              onPress={() => showTooltip('emergency')}
+              onPress={() => showTooltip('assistant')}
             >
               <Info size={24} color={BRAND} />
-              <Text style={styles.tooltipTitle}>Emergencias</Text>
+              <Text style={styles.tooltipTitle}>Asistencia</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.tooltipCard}
-              onPress={() => showTooltip('voice')}
+              onPress={() => showTooltip('entertainment')}
             >
               <Info size={24} color={BRAND} />
-              <Text style={styles.tooltipTitle}>Voz</Text>
+              <Text style={styles.tooltipTitle}>Entretenimiento</Text>
             </TouchableOpacity>
           </View>
 
