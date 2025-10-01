@@ -7,7 +7,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { ChevronLeft, User, Mail, Phone, MapPin, Calendar, Edit2, Save } from 'lucide-react-native';
+import { ChevronLeft, User, Mail, Phone, MapPin, Calendar, CreditCard as Edit2, Save } from 'lucide-react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 
