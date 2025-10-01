@@ -32,6 +32,10 @@ export default function HomeScreen() {
     router.push('/reminders');
   };
 
+  const navigateToHistory = () => {
+    router.push('/history');
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
@@ -85,6 +89,15 @@ export default function HomeScreen() {
             </View>
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Configura recordatorios de medicación, citas y eventos</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={navigateToHistory}>
+            <View style={styles.actionIcon}>
+              <AlertTriangle size={28} color="white" />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Revisa el historial de alertas</Text>
             </View>
           </TouchableOpacity>
         </View>
