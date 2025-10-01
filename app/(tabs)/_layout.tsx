@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Users, CircleUser, Bell, Clock } from 'lucide-react-native';
+import { Home, Users, CircleUser } from 'lucide-react-native';
 
 const BRAND = '#6B8E23';
 
