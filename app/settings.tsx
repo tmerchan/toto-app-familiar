@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { ChevronLeft, Shield, Bell, Volume2, Vibrate, Smartphone, MessageCircle, Music, Mic } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 const BRAND = '#6B8E23';
@@ -23,6 +23,7 @@ interface ModuleSettings {
 }
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [settings, setSettings] = useState<ModuleSettings>({
     entertainment_enabled: false,
     assistant_enabled: false,
@@ -38,11 +39,23 @@ export default function SettingsScreen() {
     setHasChanges(true);
   };
 
+  const navigateBack = () => {
+    try {
+      router.replace('/(tabs)/profile');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
   const handleSave = () => {
+    setHasChanges(false);
     Alert.alert(
       'Configuración Guardada',
       'Los cambios se han guardado correctamente.',
-      [{ text: 'OK', onPress: () => { setHasChanges(false); router.push('/(tabs)/profile'); } }]
+      [{
+        text: 'OK',
+        onPress: navigateBack
+      }]
     );
   };
 
@@ -53,11 +66,15 @@ export default function SettingsScreen() {
         '¿Estás seguro de que quieres descartar los cambios?',
         [
           { text: 'Continuar Editando', style: 'cancel' },
-          { text: 'Descartar', style: 'destructive', onPress: () => router.push('/(tabs)/profile') },
+          {
+            text: 'Descartar',
+            style: 'destructive',
+            onPress: navigateBack
+          },
         ]
       );
     } else {
-      router.push('/(tabs)/profile');
+      navigateBack();
     }
   };
 

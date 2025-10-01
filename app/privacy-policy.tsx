@@ -8,13 +8,22 @@ import {
   Alert
 } from 'react-native';
 import { ChevronLeft, Check } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 const BRAND = '#6B8E23';
 
 export default function PrivacyPolicyScreen() {
+  const router = useRouter();
   const [accepted, setAccepted] = useState(false);
+
+  const navigateBack = () => {
+    try {
+      router.replace('/(tabs)/profile');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
 
   const handleAccept = () => {
     setAccepted(true);
@@ -22,7 +31,7 @@ export default function PrivacyPolicyScreen() {
       'Términos Aceptados',
       'Has aceptado los términos y condiciones.',
       [
-        { text: 'OK', onPress: () => router.push('/(tabs)/profile') }
+        { text: 'OK', onPress: navigateBack }
       ]
     );
   };
@@ -34,7 +43,7 @@ export default function PrivacyPolicyScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.push('/(tabs)/profile')}
+          onPress={navigateBack}
         >
           <ChevronLeft size={24} color={BRAND} />
         </TouchableOpacity>

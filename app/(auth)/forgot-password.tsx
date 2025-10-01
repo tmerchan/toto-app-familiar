@@ -11,9 +11,18 @@ import {
 } from 'react-native';
 import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
-import { Link, router } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 
 export default function ForgotPasswordScreen() {
+  const router = useRouter();
+
+  const navigateToLogin = () => {
+    try {
+      router.replace('/(auth)/login');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -77,7 +86,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               style={styles.backToLoginButton}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={navigateToLogin}
             >
               <Text style={styles.backToLoginText}>Volver al inicio de sesión</Text>
             </TouchableOpacity>

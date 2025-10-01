@@ -8,7 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import { ChevronLeft, ChevronDown, ChevronUp, Info, MessageCircle, Phone } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 const BRAND = '#6B8E23';
@@ -97,9 +97,18 @@ const tooltips: Record<string, TooltipInfo> = {
 };
 
 export default function HelpScreen() {
+  const router = useRouter();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [selectedTooltip, setSelectedTooltip] = useState<TooltipInfo | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+
+  const navigateBack = () => {
+    try {
+      router.replace('/(tabs)/profile');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
 
   const toggleFAQ = (index: number) => {
     setExpandedFAQ(expandedFAQ === index ? null : index);
@@ -118,7 +127,7 @@ export default function HelpScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="white" />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/profile')}>
+        <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
           <ChevronLeft size={24} color={BRAND} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ayuda y Soporte</Text>
