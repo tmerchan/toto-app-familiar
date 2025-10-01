@@ -20,16 +20,14 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
   useEffect(() => {
-    // Authentication check simulation
+    if (!fontsLoaded && !fontError) {
+      return;
+    }
+
     const checkAuth = async () => {
-      // Here you would verify if the user is authenticated
-      const isAuthenticated = false; // Change for real logic
-      
+      const isAuthenticated = false;
+
       if (isAuthenticated) {
         router.replace('/(tabs)');
       } else {
@@ -37,10 +35,13 @@ export default function RootLayout() {
       }
     };
 
-    // Small delay to ensure navigation is ready
     const timer = setTimeout(checkAuth, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
     <>
