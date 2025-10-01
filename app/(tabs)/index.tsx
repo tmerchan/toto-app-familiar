@@ -29,11 +29,11 @@ export default function HomeScreen() {
   };
 
   const navigateToReminders = () => {
-    router.push('/calendar');
+    router.push('/(tabs)/calendar');
   };
 
   const navigateToHistory = () => {
-    router.push('/history');
+    router.push('/(tabs)/history');
   };
 
   return (

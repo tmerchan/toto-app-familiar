@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Users, CircleUser } from 'lucide-react-native';
+import { Chrome as Home, Users, CircleUser } from 'lucide-react-native';
 
 const BRAND = '#6B8E23';
 
@@ -46,6 +46,18 @@ export default function TabLayout() {
         options={{
           title: 'Mi Perfil',
           tabBarIcon: ({ size, color }) => <CircleUser size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
