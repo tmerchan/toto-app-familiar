@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell, ArrowLeft } from 'lucide-react-native';
 import { useState } from 'react';
+import { router } from 'expo-router';
 
 /* ===================== utils de formato/validación ===================== */
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
