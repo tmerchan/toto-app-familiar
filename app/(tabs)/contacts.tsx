@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { User, Phone, Plus, Pencil, X } from 'lucide-react-native';
 
@@ -171,7 +172,7 @@ export default function ContactsScreen() {
       </View>
 
       {/* Contenido centrado */}
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         {activeTab === 'elderly' ? (
           <View style={styles.sectionCentered}>
             <View style={styles.infoCard}>
@@ -334,7 +335,7 @@ export default function ContactsScreen() {
             </View>
           </View>
         )}
-      </View>
+      </ScrollView>
 
       {/* Modal para agregar/editar contacto */}
       <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet">
@@ -424,6 +425,9 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
+  },
+
+  scrollContent: {
     padding: 20,
     alignItems: 'center',
   },
