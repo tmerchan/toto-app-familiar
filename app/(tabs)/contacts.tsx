@@ -43,16 +43,17 @@ export default function ContactsScreen() {
   const [loading] = React.useState(false);
   const [error] = React.useState<string | null>(null);
 
-  const [elderlyData, setElderlyData] = React.useState<ElderlyPerson>({
+  const initialElderlyData: ElderlyPerson = {
     name: 'Juan Pablo González',
     birthDate: '15/03/1945',
     phone: '+1 234 567 8900',
     address: 'Calle Principal 123, Ciudad Central',
     medicalInfo: 'Hipertensión arterial, toma Losartán 50mg diario. Alérgico a la penicilina.',
     emergencyContact: 'Tamara González - Hija',
-  });
+  };
 
-  const [originalElderlyData, setOriginalElderlyData] = React.useState<ElderlyPerson>(elderlyData);
+  const [elderlyData, setElderlyData] = React.useState<ElderlyPerson>(initialElderlyData);
+  const [originalElderlyData, setOriginalElderlyData] = React.useState<ElderlyPerson>(initialElderlyData);
 
   const [trustedContacts, setTrustedContacts] = React.useState<TrustedContact[]>([
     { id: '1', name: 'Tamara González', relationship: 'Hija', phone: '+1 234 567 8901' },
@@ -66,7 +67,7 @@ export default function ContactsScreen() {
   });
 
   const handleSaveElderlyData = () => {
-    setOriginalElderlyData(elderlyData);
+    setOriginalElderlyData({ ...elderlyData });
     setIsEditing(false);
     Alert.alert('Éxito', 'Información guardada correctamente');
   };
@@ -78,7 +79,7 @@ export default function ContactsScreen() {
         text: 'Cancelar',
         style: 'destructive',
         onPress: () => {
-          setElderlyData(originalElderlyData);
+          setElderlyData({ ...originalElderlyData });
           setIsEditing(false);
         }
       },
@@ -193,7 +194,7 @@ export default function ContactsScreen() {
                   style={styles.iconBtn}
                   onPress={() => {
                     if (!isEditing) {
-                      setOriginalElderlyData(elderlyData);
+                      setOriginalElderlyData({ ...elderlyData });
                     }
                     setIsEditing(!isEditing);
                   }}
