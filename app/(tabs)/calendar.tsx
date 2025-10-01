@@ -9,7 +9,7 @@ import {
   Modal,
   Switch
 } from 'react-native';
-import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell } from 'lucide-react-native';
+import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell, ArrowLeft } from 'lucide-react-native';
 import { useState } from 'react';
 
 /* ===================== utils de formato/validación ===================== */
@@ -390,6 +390,9 @@ export default function RemindersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Recordatorios</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
           <Plus size={24} color="white" />
@@ -662,15 +665,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 60,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  backButton: {
+    padding: 8,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontFamily: 'PlayfairDisplay-Bold',
     color: '#1F2937',
   },
   addButton: {

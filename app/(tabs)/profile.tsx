@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronRight,
   Pencil as Edit,
+  ArrowLeft,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
@@ -76,7 +77,11 @@ export default function MyProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Mi Perfil</Text>
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -154,12 +159,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  placeholder: {
+    width: 40,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontFamily: 'PlayfairDisplay-Bold',
     color: '#1F2937',
-    textAlign: 'center',
   },
   scrollView: {
     flex: 1,

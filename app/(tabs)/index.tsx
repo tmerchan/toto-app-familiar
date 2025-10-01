@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greetingText: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 28,
+    fontFamily: 'PlayfairDisplay-Bold',
     color: '#1F2937',
     marginRight: 8,
   },

@@ -12,7 +12,8 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { User, Phone, Plus, Pencil, X } from 'lucide-react-native';
+import { User, Phone, Plus, Pencil, X, ArrowLeft } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 const BRAND = '#6B8E23';
 const MAX_WIDTH = 420; // ancho cómodo para centrar contenido
@@ -150,7 +151,11 @@ export default function ContactsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.title}>Contactos</Text>
+        <View style={styles.placeholder} />
       </View>
 
       {/* Tabs */}
@@ -408,8 +413,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  title: { fontSize: 28, fontWeight: '700', color: '#333', textAlign: 'center' },
+  backButton: {
+    padding: 8,
+  },
+  placeholder: {
+    width: 40,
+  },
+  title: { fontSize: 28, fontFamily: 'PlayfairDisplay-Bold', color: '#333', textAlign: 'center' },
 
   tabContainer: { flexDirection: 'row', backgroundColor: 'white', paddingHorizontal: 20 },
   tab: {

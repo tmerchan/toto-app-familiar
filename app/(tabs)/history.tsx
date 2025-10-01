@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 28,
+    fontFamily: 'PlayfairDisplay-Bold',
     color: '#333',
   },
   placeholder: {
