@@ -24,7 +24,7 @@ export default function MyProfileScreen() {
   };
 
   const handlePaymentMethod = () => {
-    Alert.alert('Método de Pago', 'Función de método de pago próximamente');
+    router.push('/subscription');
   };
 
   const handlePrivacyPolicy = () => {
@@ -103,8 +103,8 @@ export default function MyProfileScreen() {
           )}
 
           {renderMenuItem(
-            <Edit size={20} color="#8B5CF6" />,
-            'Método de Pago',
+            <CreditCard size={20} color="#8B5CF6" />,
+            'Suscripción y Pago',
             handlePaymentMethod,
             '#F3E8FF'
           )}
