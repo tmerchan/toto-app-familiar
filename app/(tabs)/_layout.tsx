@@ -44,7 +44,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: 'Mi Perfil',
           tabBarIcon: ({ size, color }) => <CircleUser size={size} color={color} />,
         }}
       />
