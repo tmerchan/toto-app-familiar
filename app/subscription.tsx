@@ -159,7 +159,7 @@ export default function SubscriptionScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
-          <ChevronLeft size={24} color={BRAND} />
+          <ChevronLeft size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Suscripción</Text>
         <View style={styles.placeholder} />
@@ -316,28 +316,29 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 20,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: BRAND,
+    fontSize: 24,
+    fontFamily: 'PlayfairDisplay-Bold',
+    color: '#1F2937',
   },
   placeholder: {
-    width: 40,
+    width: 44,
   },
   scrollView: {
     flex: 1,
