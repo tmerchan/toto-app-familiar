@@ -9,6 +9,35 @@ import {
 import { Phone, Bell, TriangleAlert as AlertTriangle, Check, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+
+function SoftBackground() {
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Svg width="100%" height="100%" viewBox="0 0 100 200" preserveAspectRatio="none">
+        <Defs>
+          <RadialGradient id="g1" cx="85%" cy="8%" r="60%">
+            <Stop offset="0%" stopColor="#7ea666" stopOpacity="0.55" />
+            <Stop offset="100%" stopColor="#7ea666" stopOpacity="0" />
+          </RadialGradient>
+          <RadialGradient id="g2" cx="0%" cy="28%" r="55%">
+            <Stop offset="0%" stopColor="#f2efeb" stopOpacity="0.9" />
+            <Stop offset="100%" stopColor="#f2efeb" stopOpacity="0" />
+          </RadialGradient>
+          <RadialGradient id="g3" cx="70%" cy="85%" r="50%">
+            <Stop offset="0%" stopColor="#f2efeb" stopOpacity="0.8" />
+            <Stop offset="100%" stopColor="#f2efeb" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+
+        <Rect x="0" y="0" width="100%" height="100%" fill="#FFFFFF" />
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#g1)" />
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#g2)" />
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#g3)" />
+      </Svg>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const [hasFallAlert, setHasFallAlert] = useState(false);
@@ -19,27 +48,22 @@ export default function HomeScreen() {
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
     ];
-    
     const now = new Date();
     const dayName = days[now.getDay()];
     const day = now.getDate();
     const month = months[now.getMonth()];
-    
     return `${dayName}, ${day} de ${month}`;
   };
 
-  const navigateToReminders = () => {
-    router.push('/reminders');
-  };
-
-  const navigateToHistory = () => {
-    router.push('/history');
-  };
+  const navigateToReminders = () => router.push('/reminders');
+  const navigateToHistory = () => router.push('/history');
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
-      
+      <SoftBackground />
+
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" />
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.profileSection}>
@@ -74,7 +98,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#f2efeb' }]}>
             <View style={styles.actionIcon}>
               <Phone size={28} color="white" />
             </View>
@@ -83,7 +107,7 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={navigateToReminders}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#f2efeb' }]} onPress={navigateToReminders}>
             <View style={styles.actionIcon}>
               <Bell size={28} color="white" />
             </View>
@@ -92,7 +116,7 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={navigateToHistory}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#f2efeb' }]} onPress={navigateToHistory}>
             <View style={styles.actionIcon}>
               <AlertTriangle size={28} color="white" />
             </View>
@@ -109,7 +133,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,

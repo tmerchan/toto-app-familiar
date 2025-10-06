@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,16 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { User, Phone, Plus, Pencil, X } from 'lucide-react-native';
+import { User, Phone, Pencil, X } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BRAND = '#6B8E23';
-const MAX_WIDTH = 420; // ancho cómodo para centrar contenido
+const MAX_WIDTH = 420;
+
+const STORAGE = {
+  CONTACTS: '@trustedContacts',
+  ELDERLY: '@elderlyData',
+};
 
 interface ElderlyPerson {
   name: string;
@@ -33,15 +39,21 @@ interface TrustedContact {
   phone: string;
 }
 
-export default function ContactsScreen() {
-  const [activeTab, setActiveTab] = React.useState<'elderly' | 'contacts'>('elderly');
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [showContactModal, setShowContactModal] = React.useState(false);
-  const [editingContact, setEditingContact] = React.useState<TrustedContact | null>(null);
+const sanitizePhone = (s: string) => s.replace(/[^\d+\-()\s]/g, '');
+const isPhoneValid = (s: string) => {
+  if (!/^[\d+\-()\s]*$/.test(s)) return false;
+  const digits = s.replace(/\D/g, '');
+  return digits.length >= 6 && digits.length <= 20;
+};
 
-  // (Opcional) loading mientras se cargan cosas; aquí sin carga remota
-  const [loading] = React.useState(false);
-  const [error] = React.useState<string | null>(null);
+export default function ContactsScreen() {
+  const [activeTab, setActiveTab] = useState<'elderly' | 'contacts'>('elderly');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<TrustedContact | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   const initialElderlyData: ElderlyPerson = {
     name: 'Juan Pablo González',
@@ -52,22 +64,58 @@ export default function ContactsScreen() {
     emergencyContact: 'Tamara González - Hija',
   };
 
-  const [elderlyData, setElderlyData] = React.useState<ElderlyPerson>(initialElderlyData);
-  const [originalElderlyData, setOriginalElderlyData] = React.useState<ElderlyPerson>(initialElderlyData);
+  const [elderlyData, setElderlyData] = useState<ElderlyPerson>(initialElderlyData);
+  const [originalElderlyData, setOriginalElderlyData] = useState<ElderlyPerson>(initialElderlyData);
 
-  const [trustedContacts, setTrustedContacts] = React.useState<TrustedContact[]>([
+  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([
     { id: '1', name: 'Tamara González', relationship: 'Hija', phone: '+1 234 567 8901' },
     { id: '2', name: 'Dr. García', relationship: 'Médico', phone: '+1 234 567 8902' },
   ]);
 
-  const [newContact, setNewContact] = React.useState({
-    name: '',
-    relationship: '',
-    phone: '',
-  });
+  const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
 
-  const handleSaveElderlyData = () => {
-    setOriginalElderlyData({ ...elderlyData });
+  // Modal de confirmación de borrado
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Cargar persistidos
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const [cRaw, eRaw] = await Promise.all([
+          AsyncStorage.getItem(STORAGE.CONTACTS),
+          AsyncStorage.getItem(STORAGE.ELDERLY),
+        ]);
+        if (cRaw) setTrustedContacts(JSON.parse(cRaw));
+        if (eRaw) {
+          const parsed = JSON.parse(eRaw) as ElderlyPerson;
+          setElderlyData(parsed);
+          setOriginalElderlyData(parsed);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Persistir contactos cada vez que cambian
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE.CONTACTS, JSON.stringify(trustedContacts)).catch(() => {});
+  }, [trustedContacts]);
+
+  // Persistir persona mayor al guardar
+  const persistElderly = async (next: ElderlyPerson) => {
+    setElderlyData(next);
+    setOriginalElderlyData(next);
+    try {
+      await AsyncStorage.setItem(STORAGE.ELDERLY, JSON.stringify(next));
+    } catch {}
+  };
+
+  // Persona mayor
+  const handleSaveElderlyData = async () => {
+    await persistElderly({ ...elderlyData });
     setIsEditing(false);
     Alert.alert('Éxito', 'Información guardada correctamente');
   };
@@ -81,21 +129,31 @@ export default function ContactsScreen() {
         onPress: () => {
           setElderlyData({ ...originalElderlyData });
           setIsEditing(false);
-        }
+        },
       },
     ]);
   };
 
+  // Contactos
   const handleAddContact = () => {
-    if (!newContact.name.trim() || !newContact.phone.trim()) {
+    const name = newContact.name.trim();
+    const relationship = newContact.relationship.trim();
+    const phone = sanitizePhone(newContact.phone.trim());
+
+    if (!name || !phone) {
       Alert.alert('Error', 'El nombre y teléfono son obligatorios');
       return;
     }
+    if (!isPhoneValid(phone)) {
+      Alert.alert('Teléfono inválido', 'Usa solo números, + - ( ) y un mínimo de 6 dígitos.');
+      return;
+    }
+
     const contact: TrustedContact = {
       id: Date.now().toString(),
-      name: newContact.name.trim(),
-      relationship: newContact.relationship.trim(),
-      phone: newContact.phone.trim(),
+      name,
+      relationship,
+      phone,
     };
     setTrustedContacts((prev) => [...prev, contact]);
     setNewContact({ name: '', relationship: '', phone: '' });
@@ -110,16 +168,24 @@ export default function ContactsScreen() {
   };
 
   const handleUpdateContact = () => {
-    if (!newContact.name.trim() || !newContact.phone.trim()) {
+    if (!editingContact) return;
+
+    const name = newContact.name.trim();
+    const relationship = newContact.relationship.trim();
+    const phone = sanitizePhone(newContact.phone.trim());
+
+    if (!name || !phone) {
       Alert.alert('Error', 'El nombre y teléfono son obligatorios');
       return;
     }
-    if (!editingContact) return;
+    if (!isPhoneValid(phone)) {
+      Alert.alert('Teléfono inválido', 'Usa solo números, + - ( ) y un mínimo de 6 dígitos.');
+      return;
+    }
+
     setTrustedContacts((prev) =>
       prev.map((c) =>
-        c.id === editingContact.id
-          ? { ...c, name: newContact.name.trim(), relationship: newContact.relationship.trim(), phone: newContact.phone.trim() }
-          : c
+        c.id === editingContact.id ? { ...c, name, relationship, phone } : c
       )
     );
     setNewContact({ name: '', relationship: '', phone: '' });
@@ -128,18 +194,16 @@ export default function ContactsScreen() {
     Alert.alert('Éxito', 'Contacto actualizado correctamente');
   };
 
-  const handleDeleteContact = (contactId: string) => {
-    Alert.alert('Eliminar contacto', '¿Estás seguro de que quieres eliminar este contacto?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => {
-          setTrustedContacts((prev) => prev.filter((c) => c.id !== contactId));
-          Alert.alert('Éxito', 'Contacto eliminado correctamente');
-        },
-      },
-    ]);
+  const askDeleteContact = (contactId: string) => {
+    setConfirmDeleteId(contactId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (!confirmDeleteId) return;
+    setTrustedContacts((prev) => prev.filter((c) => c.id !== confirmDeleteId));
+    setConfirmDeleteId(null);
+    setShowDeleteModal(false);
   };
 
   const closeModal = () => {
@@ -182,20 +246,17 @@ export default function ContactsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Contenido centrado */}
+      {/* Contenido */}
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {activeTab === 'elderly' ? (
           <View style={styles.sectionCentered}>
             <View style={styles.infoCard}>
-              {/* Cabecera dentro de la tarjeta con lápiz */}
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.sectionTitle}>Información de la Persona Mayor</Text>
                 <TouchableOpacity
                   style={styles.iconBtn}
                   onPress={() => {
-                    if (!isEditing) {
-                      setOriginalElderlyData({ ...elderlyData });
-                    }
+                    if (!isEditing) setOriginalElderlyData({ ...elderlyData });
                     setIsEditing(!isEditing);
                   }}
                 >
@@ -237,9 +298,12 @@ export default function ContactsScreen() {
                   <TextInput
                     style={styles.input}
                     value={elderlyData.phone}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, phone: text }))}
+                    onChangeText={(text) =>
+                      setElderlyData((p) => ({ ...p, phone: sanitizePhone(text) }))
+                    }
                     placeholder="Número de teléfono"
                     keyboardType="phone-pad"
+                    inputMode="numeric"
                   />
                 ) : (
                   <Text style={styles.value}>{elderlyData.phone}</Text>
@@ -338,7 +402,7 @@ export default function ContactsScreen() {
                         <TouchableOpacity style={styles.editContactButton} onPress={() => handleEditContact(item)}>
                           <Pencil size={18} color={BRAND} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteContact(item.id)}>
+                        <TouchableOpacity style={styles.deleteButton} onPress={() => askDeleteContact(item.id)}>
                           <X size={18} color="white" />
                         </TouchableOpacity>
                       </View>
@@ -356,8 +420,8 @@ export default function ContactsScreen() {
         )}
       </ScrollView>
 
-      {/* Modal para agregar/editar contacto */}
-      <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet">
+      {/* Modal Agregar/Editar contacto */}
+      <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingContact ? 'Editar Contacto' : 'Nuevo Contacto'}</Text>
@@ -392,15 +456,36 @@ export default function ContactsScreen() {
               <TextInput
                 style={styles.modalInput}
                 value={newContact.phone}
-                onChangeText={(text) => setNewContact((prev) => ({ ...prev, phone: text }))}
+                onChangeText={(text) =>
+                  setNewContact((prev) => ({ ...prev, phone: sanitizePhone(text) }))
+                }
                 placeholder="Número de teléfono"
                 keyboardType="phone-pad"
+                inputMode="numeric"
               />
             </View>
 
             <TouchableOpacity style={styles.modalSaveButton} onPress={editingContact ? handleUpdateContact : handleAddContact}>
               <Text style={styles.modalSaveButtonText}>{editingContact ? 'Actualizar' : 'Guardar'}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Confirmar borrado */}
+      <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={() => setShowDeleteModal(false)}>
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Eliminar contacto</Text>
+            <Text style={styles.confirmText}>¿Seguro que querés eliminar este contacto?</Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.confirmCancel} onPress={() => setShowDeleteModal(false)}>
+                <Text style={styles.confirmCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmDelete} onPress={confirmDelete}>
+                <Text style={styles.confirmDeleteText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -443,20 +528,10 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 16, color: '#666', fontWeight: '400', textAlign: 'center' },
   activeTabText: { color: BRAND, fontWeight: '400', textAlign: 'center' },
 
-  content: {
-    flex: 1,
-  },
+  content: { flex: 1 },
+  scrollContent: { padding: 20, alignItems: 'center' },
 
-  scrollContent: {
-    padding: 20,
-    alignItems: 'center',
-  },
-
-  sectionCentered: {
-    width: '100%',
-    maxWidth: MAX_WIDTH,
-    alignSelf: 'center',
-  },
+  sectionCentered: { width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center' },
 
   infoCard: {
     backgroundColor: 'white',
@@ -493,12 +568,7 @@ const styles = StyleSheet.create({
   },
   multilineInput: { minHeight: 80, textAlignVertical: 'top' },
 
-  buttonRowCentered: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginTop: 16,
-  },
+  buttonRowCentered: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 16 },
   btnSecondary: {
     paddingVertical: 14,
     paddingHorizontal: 18,
@@ -560,7 +630,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: { color: 'white', fontSize: 15, fontWeight: '400', textAlign: 'center' },
 
-  // Modal centrado
+  // Modal página (add/editar)
   modalContainer: { flex: 1, backgroundColor: 'white' },
   modalHeader: {
     flexDirection: 'row',
@@ -594,6 +664,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalSaveButtonText: { color: 'white', fontSize: 16, fontWeight: '400', textAlign: 'center' },
+
+  // Modal confirmación
+  confirmBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmCard: { width: '100%', maxWidth: 360, backgroundColor: 'white', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+  confirmTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 6 },
+  confirmText: { fontSize: 14, color: '#374151', marginBottom: 18 },
+  confirmActions: { flexDirection: 'row', gap: 10 },
+  confirmCancel: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  confirmCancelText: { fontSize: 16, fontWeight: '600', color: '#6B7280' },
+  confirmDelete: { flex: 1, backgroundColor: '#EF4444', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  confirmDeleteText: { fontSize: 16, fontWeight: '600', color: 'white' },
 
   // Error
   errorContainer: {

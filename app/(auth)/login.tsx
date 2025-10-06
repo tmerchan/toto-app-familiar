@@ -7,16 +7,10 @@ import {
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image,
 } from 'react-native';
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  Heart
-} from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
 
@@ -31,21 +25,15 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
-
     setIsLoading(true);
-    
-    // Simular autenticación
     setTimeout(() => {
       setIsLoading(false);
-      // Navegar a la app principal
       router.replace('/(tabs)');
     }, 1500);
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
-    // Simular login con Google
     setTimeout(() => {
       setIsLoading(false);
       Alert.alert('Éxito', 'Iniciando sesión con Google...');
@@ -54,32 +42,31 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoText}>Toto</Text>
-            </View>
+          <View style={styles.logoWrap}>
+            <Image
+              source={require('../../assets/images/logo_toto.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Logo Toto"
+            />
           </View>
-          <Text style={styles.title}>Toto</Text>
-          <Text style={styles.subtitle}>
-            Mantente conectado con tu ser querido
-          </Text>
+
+          <Text style={styles.subtitle}>Mantente conectado con tu ser querido</Text>
         </View>
 
         {/* Login Form */}
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Iniciar Sesión</Text>
-          
-          {/* Email Input */}
+
+          {/* Email */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <Mail size={20} color="#6B7280" style={styles.inputIcon} />
@@ -95,7 +82,7 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Password Input */}
+          {/* Password */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <Lock size={20} color="#6B7280" style={styles.inputIcon} />
@@ -107,29 +94,20 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 autoComplete="password"
               />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
-                ) : (
-                  <Eye size={20} color="#6B7280" />
-                )}
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Forgot Password */}
+          {/* Forgot */}
           <TouchableOpacity style={styles.forgotPassword}>
             <Link href="/(auth)/forgot-password" asChild>
-              <Text style={styles.forgotPasswordText}>
-                ¿Olvidaste tu contraseña?
-              </Text>
+              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
             </Link>
           </TouchableOpacity>
 
-          {/* Login Button */}
+          {/* Login */}
           <TouchableOpacity
             style={[styles.loginButton, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -148,16 +126,12 @@ export default function LoginScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Login Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            disabled={isLoading}
-          >
+          {/* Google */}
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading}>
             <Text style={styles.googleButtonText}>🔍 Google</Text>
           </TouchableOpacity>
 
-          {/* Register Link */}
+          {/* Register */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
             <Link href="/(auth)/register" asChild>
@@ -173,58 +147,23 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  header: { alignItems: 'center', marginBottom: 40 },
+
+  logoWrap: {
+    width: '100%',
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 12,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+  logoImage: {
+    width: 260,
+    height: 120,
   },
-  logoPlaceholder: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#6B8E23',
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+
+  title: { fontSize: 32, fontWeight: '700', color: '#1F2937', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
+
   formContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -235,16 +174,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
+  formTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 24, textAlign: 'center' },
+
+  inputContainer: { marginBottom: 16 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -255,26 +187,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 56,
   },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: '#6B8E23',
-    fontWeight: '600',
-  },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: '#1F2937' },
+  eyeIcon: { padding: 4 },
+
+  forgotPassword: { alignSelf: 'flex-end', marginBottom: 24 },
+  forgotPasswordText: { fontSize: 14, color: '#6B8E23', fontWeight: '600' },
+
   loginButton: {
     backgroundColor: '#6B8E23',
     borderRadius: 12,
@@ -285,29 +204,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     gap: 8,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#6B7280',
-  },
+  buttonDisabled: { opacity: 0.6 },
+  loginButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+
+  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  dividerText: { marginHorizontal: 16, fontSize: 14, color: '#6B7280' },
+
   googleButton: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -318,23 +221,9 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     marginBottom: 24,
   },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  registerText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  registerLink: {
-    fontSize: 14,
-    color: '#6B8E23',
-    fontWeight: '600',
-  },
+  googleButtonText: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
+
+  registerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  registerText: { fontSize: 14, color: '#6B7280' },
+  registerLink: { fontSize: 14, color: '#6B8E23', fontWeight: '600' },
 });
