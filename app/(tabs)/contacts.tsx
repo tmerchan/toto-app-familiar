@@ -56,19 +56,19 @@ export default function ContactsScreen() {
   const [error] = useState<string | null>(null);
 
   const initialElderlyData: ElderlyPerson = {
-    name: 'Juan Pablo González',
+    name: 'Juan Pablo Yoo',
     birthDate: '15/03/1945',
     phone: '+1 234 567 8900',
-    address: 'Calle Principal 123, Ciudad Central',
+    address: 'P. Sherman, 42 Wallaby Way, Sídney',
     medicalInfo: 'Hipertensión arterial, toma Losartán 50mg diario. Alérgico a la penicilina.',
-    emergencyContact: 'Tamara González - Hija',
+    emergencyContact: 'Tamara Merchan - Hija',
   };
 
   const [elderlyData, setElderlyData] = useState<ElderlyPerson>(initialElderlyData);
   const [originalElderlyData, setOriginalElderlyData] = useState<ElderlyPerson>(initialElderlyData);
 
   const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([
-    { id: '1', name: 'Tamara González', relationship: 'Hija', phone: '+1 234 567 8901' },
+    { id: '1', name: 'Tamara Merchan', relationship: 'Hija', phone: '+1 234 567 8901' },
     { id: '2', name: 'Dr. García', relationship: 'Médico', phone: '+1 234 567 8902' },
   ]);
 
@@ -184,9 +184,7 @@ export default function ContactsScreen() {
     }
 
     setTrustedContacts((prev) =>
-      prev.map((c) =>
-        c.id === editingContact.id ? { ...c, name, relationship, phone } : c
-      )
+      prev.map((c) => (c.id === editingContact.id ? { ...c, name, relationship, phone } : c))
     );
     setNewContact({ name: '', relationship: '', phone: '' });
     setEditingContact(null);
@@ -247,8 +245,14 @@ export default function ContactsScreen() {
       </View>
 
       {/* Contenido */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {activeTab === 'elderly' ? (
+      {activeTab === 'elderly' ? (
+        // 👉 Esta pestaña sí usa ScrollView (no hay listas virtualizadas acá)
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.sectionCentered}>
             <View style={styles.infoCard}>
               <View style={styles.cardHeaderRow}>
@@ -366,7 +370,10 @@ export default function ContactsScreen() {
               )}
             </View>
           </View>
-        ) : (
+        </ScrollView>
+      ) : (
+        // 👉 Esta pestaña NO debe estar dentro de un ScrollView
+        <View style={[styles.content, { alignItems: 'center' }]}>
           <View style={styles.sectionCentered}>
             <View style={styles.infoCard}>
               <Text style={[styles.sectionTitle, { textAlign: 'center', marginBottom: 8 }]}>
@@ -409,6 +416,7 @@ export default function ContactsScreen() {
                     </View>
                   )}
                   showsVerticalScrollIndicator={false}
+                  ListFooterComponent={<View style={{ height: 8 }} />}
                 />
               )}
 
@@ -417,8 +425,8 @@ export default function ContactsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        )}
-      </ScrollView>
+        </View>
+      )}
 
       {/* Modal Agregar/Editar contacto */}
       <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
@@ -465,7 +473,10 @@ export default function ContactsScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.modalSaveButton} onPress={editingContact ? handleUpdateContact : handleAddContact}>
+            <TouchableOpacity
+              style={styles.modalSaveButton}
+              onPress={editingContact ? handleUpdateContact : handleAddContact}
+            >
               <Text style={styles.modalSaveButtonText}>{editingContact ? 'Actualizar' : 'Guardar'}</Text>
             </TouchableOpacity>
           </View>

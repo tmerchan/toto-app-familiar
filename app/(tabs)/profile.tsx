@@ -49,7 +49,7 @@ export default function MyProfileScreen() {
         <View style={styles.menuContainer}>
           {renderMenuItem(<User size={20} color="#6B8E23" />, 'Perfil', handleEditProfile, '#F0FDF4')}
           {renderMenuItem(<CreditCard size={20} color="#8B5CF6" />, 'Suscripción y Pago', handlePaymentMethod, '#F3E8FF')}
-          {renderMenuItem(<Shield size={20} color="#10B981" />, 'Política de Privacidad', handlePrivacyPolicy, '#F0FDF4')}
+          {renderMenuItem(<Shield size={20} color="#10B981" />, 'Términos y Condiciones', handlePrivacyPolicy, '#F0FDF4')}
           {renderMenuItem(<Settings size={20} color="#6B7280" />, 'Configuración', handleSettings, '#F9FAFB')}
           {renderMenuItem(<HelpCircle size={20} color="#F59E0B" />, 'Ayuda', handleHelp, '#FFFBEB')}
           {renderMenuItem(<LogOut size={20} color="#EF4444" />, 'Cerrar Sesión', () => setLogoutOpen(true), '#FEF2F2')}

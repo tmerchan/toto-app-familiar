@@ -28,8 +28,8 @@ export default function HistoryScreen() {
       id: '1',
       type: 'fall',
       title: 'Caída detectada',
-      description: 'Se detectó una caída en el baño',
-      date: '15/03/2024',
+      description: 'Se detectó una caída',
+      date: '15/03/2025',
       time: '14:30',
       elderName: 'Juan Pablo'
     },
@@ -37,8 +37,8 @@ export default function HistoryScreen() {
       id: '2',
       type: 'help',
       title: 'Pedido de auxilio',
-      description: 'Solicitó ayuda mediante el botón de emergencia',
-      date: '14/03/2024',
+      description: 'Se detectó una solicitud de ayuda',
+      date: '14/03/2025',
       time: '09:15',
       elderName: 'Juan Pablo'
     },
@@ -47,7 +47,7 @@ export default function HistoryScreen() {
       type: 'medication_taken',
       title: 'Medicación tomada',
       description: 'Aspirina - 100mg',
-      date: '14/03/2024',
+      date: '14/03/2025',
       time: '08:00',
       elderName: 'Juan Pablo'
     },
@@ -56,7 +56,7 @@ export default function HistoryScreen() {
       type: 'medication_missed',
       title: 'Medicación no tomada',
       description: 'Omeprazol - 20mg',
-      date: '13/03/2024',
+      date: '13/03/2025',
       time: '20:00',
       elderName: 'Juan Pablo'
     },
@@ -64,8 +64,8 @@ export default function HistoryScreen() {
       id: '5',
       type: 'fall',
       title: 'Caída detectada',
-      description: 'Se detectó una caída en la sala',
-      date: '12/03/2024',
+      description: 'Se detectó una caída',
+      date: '12/03/2025',
       time: '16:45',
       elderName: 'Juan Pablo'
     },

@@ -27,7 +27,7 @@ interface TooltipInfo {
 const faqData: FAQItem[] = [
   {
     question: '¿Qué es Toto?',
-    answer: 'Toto es una aplicación de acompañamiento gerontológico diseñada para ayudar a personas mayores y sus cuidadores. Ofrece 6 módulos especializados: Registro, Prevención, Recordatorios, Comunicación, Asistencia en Rutinas y Entretenimiento.',
+    answer: 'Toto es una aplicación de acompañamiento gerontológico diseñada para ayudar a personas mayores y sus familiares o allegados. Ofrece 6 módulos especializados: Registro, Prevención, Recordatorios, Interacción, Asistencia en Rutinas y Entretenimiento.',
     category: 'general',
   },
   {
@@ -42,11 +42,11 @@ const faqData: FAQItem[] = [
   },
   {
     question: '¿Qué es el Módulo de Recordatorios?',
-    answer: 'Permite configurar recordatorios programados para medicación, citas médicas o actividades cotidianas. Los recordatorios se gestionan desde el dispositivo del cuidador y se entregan en el momento oportuno con síntesis de voz y estímulos visuales, garantizando el cumplimiento de rutinas críticas para el bienestar.',
+    answer: 'Permite configurar recordatorios programados para medicación, citas médicas o actividades cotidianas. Los recordatorios se gestionan desde el dispositivo del cuidador y se entregan en el momento oportuno con síntesis de voz, garantizando el cumplimiento de rutinas críticas para el bienestar.',
     category: 'features',
   },
   {
-    question: '¿Qué es el Módulo de Comunicación?',
+    question: '¿Qué es el Módulo de Interacción?',
     answer: 'Permite la comunicación bidireccional entre la persona mayor y sus familiares mediante WhatsApp. Asegura que las notificaciones de emergencia y mensajes cotidianos se transmitan en un canal familiar, reduciendo la curva de aprendizaje. También permite iniciar llamadas directas a contactos registrados.',
     category: 'features',
   },
@@ -62,7 +62,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: '¿Cómo configuro los módulos opcionales?',
-    answer: 'Los módulos de Registro, Prevención, Recordatorios y Comunicación están siempre activos por seguridad. Los módulos de Entretenimiento y Asistencia en Rutinas son opcionales y pueden activarse/desactivarse desde Configuración en tu perfil.',
+    answer: 'Los módulos de Registro, Prevención, Recordatorios e Interacción están siempre activos por seguridad. Los módulos de Entretenimiento y Asistencia en Rutinas son opcionales y pueden activarse/desactivarse desde Suscripción y Pago en tu perfil.',
     category: 'general',
   },
   {
@@ -111,7 +111,7 @@ const tooltips: Record<string, TooltipInfo> = {
     description: 'Configura alertas para medicamentos, citas médicas y actividades. Notifica con voz y visuales en horarios programados.',
   },
   communication: {
-    title: 'Módulo de Comunicación',
+    title: 'Módulo de Interacción',
     description: 'Comunicación bidireccional con familiares vía WhatsApp. Incluye mensajes, alertas de emergencia y llamadas directas.',
   },
   assistant: {
@@ -120,7 +120,7 @@ const tooltips: Record<string, TooltipInfo> = {
   },
   entertainment: {
     title: 'Módulo de Entretenimiento',
-    description: 'Estimulación cognitiva con música de Spotify y juegos. Fácil de usar por voz o botones, reduce la soledad.',
+    description: 'Estimulación cognitiva con música de Spotify y juegos. Fácil de usar por voz, reduce la soledad.',
   },
 };
 

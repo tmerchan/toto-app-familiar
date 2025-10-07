@@ -13,10 +13,8 @@ import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, B
 import { useState } from 'react';
 import { router } from 'expo-router';
 
-/* ===================== utils de formato/validación ===================== */
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
-// DD/MM/AAAA con máscara al tipear
 const formatDate = (s: string) => {
   const d = onlyDigits(s).slice(0, 8);
   const dd = d.slice(0, 2);
@@ -40,7 +38,6 @@ const isValidDate = (s: string) => {
   return dd >= 1 && dd <= daysInMonth;
 };
 
-// HH:MM o HH:MM:SS con máscara al tipear
 const formatTime = (s: string) => {
   const d = onlyDigits(s).slice(0, 6); // HH MM SS
   const hh = d.slice(0, 2);
@@ -52,11 +49,9 @@ const formatTime = (s: string) => {
   return out;
 };
 
-// HH:MM o HH:MM:SS (minutos/segundos 00–59)
 const isValidTime = (s: string) => {
   return /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.test(s);
 };
-/* ====================================================================== */
 
 interface Reminder {
   id: string;
@@ -66,12 +61,11 @@ interface Reminder {
   date: string; // DD/MM/AAAA
   time: string; // HH:MM o HH:MM:SS
   isActive: boolean;
-  // frecuencia: para medicación (once/daily/weekly/monthly) y para eventos (once/yearly)
   frequency?: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-  leadTimeMinutes?: number; // anticipación para citas/eventos
-  dosage?: string; // Para medicación
-  doctor?: string; // Para citas
-  location?: string; // Para citas y eventos
+  leadTimeMinutes?: number;
+  dosage?: string;
+  doctor?: string;
+  location?: string;
 }
 
 export default function RemindersScreen() {
@@ -93,12 +87,10 @@ export default function RemindersScreen() {
     location: ''
   });
 
-  // Errores por campo
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const setField = (key: keyof Reminder, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
-    // limpiar error de ese campo si lo había
     setErrors(prev => {
       const copy = { ...prev };
       delete copy[key as string];
@@ -155,19 +147,16 @@ export default function RemindersScreen() {
       newErrors.time = 'La hora no es válida. Usa HH:MM o HH:MM:SS (min/seg 00–59).';
     }
 
-    // Validación de anticipación en cita/evento (opcional pero debe ser >= 0 si está)
     if ((formData.type === 'appointment' || formData.type === 'event') && formData.leadTimeMinutes != null) {
       if (Number.isNaN(formData.leadTimeMinutes) || formData.leadTimeMinutes < 0) {
         newErrors.leadTimeMinutes = 'La anticipación debe ser un número de minutos (0 o más).';
       }
     }
 
-    // Para eventos, frecuencia permitida: once | yearly
     if (formData.type === 'event' && formData.frequency && !['once', 'yearly'].includes(formData.frequency)) {
       newErrors.frequency = 'Para eventos, solo se admite "Una vez" o "Anual".';
     }
 
-    // Para citas, no debe haber frecuencia
     if (formData.type === 'appointment' && formData.frequency) {
       newErrors.frequency = 'Las citas no tienen frecuencia de repetición.';
     }
@@ -185,16 +174,12 @@ export default function RemindersScreen() {
       date: formData.date || '',
       time: formData.time || '',
       isActive: formData.isActive ?? true,
-      // Frecuencia:
-      // - medicación: daily/weekly/monthly/once
-      // - evento: once/yearly
       frequency:
         formData.type === 'medication'
           ? (formData.frequency || 'daily')
           : formData.type === 'event'
             ? (formData.frequency || 'once')
             : undefined,
-      // Anticipación solo aplica a cita/evento
       leadTimeMinutes:
         formData.type === 'appointment' || formData.type === 'event'
           ? (formData.leadTimeMinutes ?? undefined)
@@ -271,9 +256,13 @@ export default function RemindersScreen() {
     }
   };
 
-  const renderTabButton = (tab: typeof activeTab, title: string) => (
+  const renderTabButton = (
+    tab: typeof activeTab,
+    title: string,
+    extraStyle?: object
+  ) => (
     <TouchableOpacity
-      style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+      style={[styles.tabButton, extraStyle, activeTab === tab && styles.activeTabButton]}
       onPress={() => setActiveTab(tab)}
     >
       <Text style={[styles.tabButtonText, activeTab === tab && styles.activeTabButtonText]}>
@@ -323,7 +312,6 @@ export default function RemindersScreen() {
           📅 {reminder.date} • ⏰ {reminder.time}
         </Text>
 
-        {/* Frecuencia visible para medicación y eventos */}
         {reminder.frequency && (
           <Text style={styles.reminderFrequency}>
             🔄 {
@@ -335,7 +323,6 @@ export default function RemindersScreen() {
           </Text>
         )}
 
-        {/* Anticipación visible para cita/evento */}
         {(reminder.type === 'appointment' || reminder.type === 'event') && typeof reminder.leadTimeMinutes === 'number' && (
           <Text style={styles.reminderExtra}>⏳ Anticipación: {reminder.leadTimeMinutes} min</Text>
         )}
@@ -400,14 +387,24 @@ export default function RemindersScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.tabContainer}>
-        {renderTabButton('all', 'Todos')}
-        {renderTabButton('medication', 'Medicación')}
-        {renderTabButton('appointment', 'Citas')}
-        {renderTabButton('event', 'Eventos')}
+      <View style={styles.tabWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+        >
+          {renderTabButton('all', 'Todos')}
+          {renderTabButton('medication', 'Medicación', { minWidth: 150 })} 
+          {renderTabButton('appointment', 'Citas')}
+          {renderTabButton('event', 'Eventos')}
+        </ScrollView>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
         {getFilteredReminders().length === 0 ? (
           <View style={styles.emptyState}>
             <Bell size={48} color="#9CA3AF" />
@@ -438,7 +435,11 @@ export default function RemindersScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Tipo de recordatorio</Text>
               <View style={styles.typeSelector}>
@@ -480,10 +481,13 @@ export default function RemindersScreen() {
                     }}
                   >
                     {getTypeIcon(type)}
-                    <Text style={[
-                      styles.typeButtonText,
-                      formData.type === type && { color: getTypeColor(type) }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        formData.type === type && { color: getTypeColor(type) }
+                      ]}
+                      numberOfLines={2}
+                    >
                       {getTypeLabel(type)}
                     </Text>
                   </TouchableOpacity>
@@ -547,6 +551,7 @@ export default function RemindersScreen() {
                           styles.frequencyButtonText,
                           formData.frequency === freq && styles.activeFrequencyButtonText
                         ]}
+                        numberOfLines={2}
                       >
                         {freq === 'once' ? 'Una vez' :
                          freq === 'daily' ? 'Diario' :
@@ -559,6 +564,7 @@ export default function RemindersScreen() {
               </View>
             )}
 
+            {/* ====== FRECUENCIA (Eventos) ====== */}
             {formData.type === 'event' && (
               <View style={styles.formField}>
                 <Text style={styles.formLabel}>Repetición (evento)</Text>
@@ -577,6 +583,7 @@ export default function RemindersScreen() {
                           styles.frequencyButtonText,
                           formData.frequency === freq && styles.activeFrequencyButtonText
                         ]}
+                        numberOfLines={2}
                       >
                         {freq === 'once' ? 'Una vez' : 'Anual'}
                       </Text>
@@ -634,7 +641,6 @@ export default function RemindersScreen() {
             </View>
 
             <TouchableOpacity style={styles.saveButton} onPress={saveReminder}>
-              <Save size={20} color="white" />
               <Text style={styles.saveButtonText}>
                 {editingReminder ? 'Actualizar' : 'Guardar'} Recordatorio
               </Text>
@@ -691,12 +697,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
   },
   tabButton: {
-    flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     marginHorizontal: 2,
     alignItems: 'center',
+    minWidth: 110,
   },
   activeTabButton: {
     backgroundColor: '#6B8E23',
@@ -803,6 +809,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
   },
+
+  /* ===== Modal ===== */
   modalContainer: {
     flex: 1,
     backgroundColor: 'white',
@@ -834,6 +842,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
   },
+
+  /* ===== Form ===== */
   formField: {
     marginBottom: 20,
   },
@@ -867,15 +877,17 @@ const styles = StyleSheet.create({
   },
   typeSelector: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   typeButton: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
@@ -886,29 +898,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   typeButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#6B7280',
+    textAlign: 'center',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
+
   frequencySelector: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   frequencyButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    flexGrow: 1,
+    flexBasis: '45%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   activeFrequencyButton: {
     backgroundColor: '#6B8E23',
   },
   frequencyButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#6B7280',
+    textAlign: 'center',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   activeFrequencyButtonText: {
     color: 'white',
@@ -933,5 +955,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  tabWrapper: {
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  tabsRow: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 8,
   },
 });
