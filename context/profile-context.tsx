@@ -15,6 +15,8 @@ type ProfileCtx = {
   setProfile: (p: Profile) => void;
   updateProfile: (partial: Partial<Profile>) => void;
   resetProfile: () => void;
+  acceptedTerms: boolean;
+  setAcceptedTerms: (value: boolean) => void;
 };
 
 const defaultProfile: Profile = {
@@ -30,26 +32,38 @@ const Ctx = createContext<ProfileCtx | null>(null);
 
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfileState] = useState<Profile>(defaultProfile);
+  const [acceptedTerms, setAcceptedTermsState] = useState<boolean>(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem('@profile');
-        if (raw) setProfileState(JSON.parse(raw));
+        const rawProfile = await AsyncStorage.getItem('@profile');
+        const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
+        if (rawProfile) setProfileState(JSON.parse(rawProfile));
+        if (rawTerms) setAcceptedTermsState(JSON.parse(rawTerms));
       } catch {}
     })();
   }, []);
 
-  const persist = async (p: Profile) => {
+  const persistProfile = async (p: Profile) => {
     setProfileState(p);
     try { await AsyncStorage.setItem('@profile', JSON.stringify(p)); } catch {}
   };
 
-  const setProfile = (p: Profile) => persist(p);
-  const updateProfile = (partial: Partial<Profile>) => persist({ ...profile, ...partial });
-  const resetProfile = () => persist(defaultProfile);
+  const persistTerms = async (value: boolean) => {
+    setAcceptedTermsState(value);
+    try { await AsyncStorage.setItem('@acceptedTerms', JSON.stringify(value)); } catch {}
+  };
 
-  return <Ctx.Provider value={{ profile, setProfile, updateProfile, resetProfile }}>{children}</Ctx.Provider>;
+  const setProfile = (p: Profile) => persistProfile(p);
+  const updateProfile = (partial: Partial<Profile>) => persistProfile({ ...profile, ...partial });
+  const resetProfile = () => persistProfile(defaultProfile);
+
+  return (
+    <Ctx.Provider value={{ profile, setProfile, updateProfile, resetProfile, acceptedTerms, setAcceptedTerms: persistTerms }}>
+      {children}
+    </Ctx.Provider>
+  );
 };
 
 export const useProfile = () => {

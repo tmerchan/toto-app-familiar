@@ -13,8 +13,12 @@ import {
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
+import { useProfile } from '../../context/profile-context';
+import { useAuth } from '../../context/auth-context';
 
 export default function LoginScreen() {
+  const { acceptedTerms } = useProfile();
+  const { login, error: authError, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,20 +29,38 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      setIsLoading(true);
+      clearError();
+      
+      await login({ email, password });
+      
+      // After successful login, check terms
+      if (!acceptedTerms) {
+        router.replace('/(auth)/terms-and-conditions');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error?.message || 'Error al iniciar sesión. Verifica tus credenciales.';
+      Alert.alert('Error de autenticación', errorMessage);
+    } finally {
       setIsLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
+    }
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert('Éxito', 'Iniciando sesión con Google...');
-      router.replace('/(tabs)');
-    }, 1000);
+      if (!acceptedTerms) {
+        router.replace('/(auth)/terms-and-conditions');
+      } else {
+        router.replace('/(tabs)');
+      }
+    }, 1500);
   };
 
   return (
@@ -49,7 +71,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoWrap}>
+          <View style={styles.logoContainer}>
             <Image
               source={require('../../assets/images/logo_toto.png')}
               style={styles.logoImage}
@@ -58,8 +80,6 @@ export default function LoginScreen() {
               accessibilityLabel="Logo Toto"
             />
           </View>
-
-          <Text style={styles.subtitle}>Mantente conectado con tu ser querido</Text>
         </View>
 
         {/* Login Form */}
@@ -128,7 +148,7 @@ export default function LoginScreen() {
 
           {/* Google */}
           <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading}>
-            <Text style={styles.googleButtonText}>🔍 Google</Text>
+            <Text style={styles.googleButtonText}>Google</Text>
           </TouchableOpacity>
 
           {/* Register */}
@@ -147,21 +167,36 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F2EFEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 40 },
 
-  logoWrap: {
-    width: '100%',
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'white',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoImage: {
-    width: 260,
-    height: 120,
+    width: 200,
+    height: 200,
   },
 
-  title: { fontSize: 32, fontWeight: '700', color: '#1F2937', marginBottom: 8 },
+  title: { fontSize: 32, fontWeight: '700', color: '#1F2937', marginBottom: 8, fontFamily: 'PlayfairDisplay-Bold' },
   subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
 
   formContainer: {
@@ -174,7 +209,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  formTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 24, textAlign: 'center' },
+  formTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 24, textAlign: 'center', fontFamily: 'PlayfairDisplay-Bold' },
 
   inputContainer: { marginBottom: 16 },
   inputWrapper: {

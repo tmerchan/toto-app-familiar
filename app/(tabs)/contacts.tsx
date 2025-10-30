@@ -73,6 +73,7 @@ export default function ContactsScreen() {
   ]);
 
   const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
+  const [showRelationPicker, setShowRelationPicker] = useState(false);
 
   // Modal de confirmación de borrado
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -101,7 +102,7 @@ export default function ContactsScreen() {
 
   // Persistir contactos cada vez que cambian
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE.CONTACTS, JSON.stringify(trustedContacts)).catch(() => {});
+    AsyncStorage.setItem(STORAGE.CONTACTS, JSON.stringify(trustedContacts)).catch(() => { });
   }, [trustedContacts]);
 
   // Persistir persona mayor al guardar
@@ -110,7 +111,7 @@ export default function ContactsScreen() {
     setOriginalElderlyData(next);
     try {
       await AsyncStorage.setItem(STORAGE.ELDERLY, JSON.stringify(next));
-    } catch {}
+    } catch { }
   };
 
   // Persona mayor
@@ -451,12 +452,15 @@ export default function ContactsScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Relación</Text>
-              <TextInput
+              <TouchableOpacity
                 style={styles.modalInput}
-                value={newContact.relationship}
-                onChangeText={(text) => setNewContact((prev) => ({ ...prev, relationship: text }))}
-                placeholder="Ej: Hijo, Médico, Vecino"
-              />
+                onPress={() => setShowRelationPicker(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={newContact.relationship ? styles.pickerButtonText : styles.pickerPlaceholder}>
+                  {newContact.relationship || 'Selecciona una relación'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -497,6 +501,39 @@ export default function ContactsScreen() {
                 <Text style={styles.confirmDeleteText}>Eliminar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal selector de relación */}
+      <Modal visible={showRelationPicker} transparent animationType="slide" onRequestClose={() => setShowRelationPicker(false)}>
+        <View style={styles.relationBackdrop}>
+          <View style={styles.relationCard}>
+            <Text style={styles.relationTitle}>Seleccionar relación</Text>
+            {[
+              'Hijo/Hija',
+              'Cónyuge',
+              'Médico',
+              'Vecino',
+              'Amigo',
+              'Cuidador',
+              'Otro',
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={styles.relationOption}
+                onPress={() => {
+                  setNewContact((prev) => ({ ...prev, relationship: opt }));
+                  setShowRelationPicker(false);
+                }}
+              >
+                <Text style={styles.relationOptionText}>{opt}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity style={styles.relationCancel} onPress={() => setShowRelationPicker(false)}>
+              <Text style={styles.relationCancelText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -666,6 +703,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
+  pickerButtonText: { fontSize: 16, color: '#111' },
+  pickerPlaceholder: { fontSize: 16, color: '#9CA3AF' },
   modalSaveButton: {
     backgroundColor: BRAND,
     paddingVertical: 14,
@@ -697,4 +736,12 @@ const styles = StyleSheet.create({
     borderLeftColor: '#f44336',
   },
   errorText: { color: '#c62828', fontSize: 14, textAlign: 'center' },
+  // Relation picker modal
+  relationBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  relationCard: { backgroundColor: 'white', padding: 16, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  relationTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 8 },
+  relationOption: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  relationOptionText: { fontSize: 16, color: '#111' },
+  relationCancel: { marginTop: 8, paddingVertical: 12, alignItems: 'center' },
+  relationCancelText: { fontSize: 16, color: '#6B7280' },
 });

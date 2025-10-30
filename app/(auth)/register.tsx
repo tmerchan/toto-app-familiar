@@ -1,18 +1,19 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
+import {
+  Mail,
+  Lock,
+  Eye,
   EyeOff,
   User,
   Phone,
@@ -21,8 +22,10 @@ import {
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
+import { useAuth } from '../../context/auth-context';
 
 export default function RegisterScreen() {
+  const { register, error: authError, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -52,13 +55,20 @@ export default function RegisterScreen() {
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simular registro
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      setIsLoading(true);
+      clearError();
+      
+      await register({
+        name,
+        email,
+        phone,
+        password,
+        role: 'ELDERLY', // Default role, can be changed to add role selection
+      });
+
       Alert.alert(
-        'Registro exitoso', 
+        'Registro exitoso',
         'Tu cuenta ha sido creada correctamente',
         [
           {
@@ -67,12 +77,27 @@ export default function RegisterScreen() {
           }
         ]
       );
-    }, 1500);
+    } catch (error: any) {
+      console.error('Register error:', error);
+      const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
+      
+      // Show field errors if available
+      if (error?.fieldErrors) {
+        const fieldErrors = Object.entries(error.fieldErrors)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join('\n');
+        Alert.alert('Error de validación', fieldErrors);
+      } else {
+        Alert.alert('Error de registro', errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleRegister = async () => {
     setIsLoading(true);
-    
+
     // Simular registro con Google
     setTimeout(() => {
       setIsLoading(false);
@@ -86,29 +111,35 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Heart size={40} color="#6B8E23" />
+            <Image
+              source={require('../../assets/images/logo_toto.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Logo Toto"
+            />
           </View>
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>
-            Únete a CuidaFamilia y mantente conectado
+            Únete a Toto y mantente conectado
           </Text>
         </View>
 
         {/* Register Form */}
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Registro</Text>
-          
+
           {/* Name Input */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
@@ -251,7 +282,9 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F2EFEB', // Color beige
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -260,7 +293,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   logoContainer: {
     width: 80,
@@ -270,6 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -277,15 +311,15 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -309,6 +343,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 24,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   inputContainer: {
     marginBottom: 16,

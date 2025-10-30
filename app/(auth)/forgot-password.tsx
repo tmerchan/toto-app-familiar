@@ -1,13 +1,14 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
@@ -40,7 +41,7 @@ export default function ForgotPasswordScreen() {
     }
 
     setIsLoading(true);
-    
+
     // Simular envío de email
     setTimeout(() => {
       setIsLoading(false);
@@ -56,7 +57,7 @@ export default function ForgotPasswordScreen() {
   if (emailSent) {
     return (
       <View style={styles.container}>
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -64,16 +65,15 @@ export default function ForgotPasswordScreen() {
             <View style={styles.successIcon}>
               <CheckCircle size={60} color="#10B981" />
             </View>
-            
-            <Text style={styles.successTitle}>¡Email Enviado!</Text>
+
+            <Text style={styles.successTitle}>¡Correo enviado!</Text>
             <Text style={styles.successMessage}>
-              Hemos enviado las instrucciones para restablecer tu contraseña a:
+              Te hemos enviado un correo con las instrucciones para restablecer tu contraseña a:
             </Text>
             <Text style={styles.emailText}>{email}</Text>
-            
+
             <Text style={styles.instructionText}>
-              Revisa tu bandeja de entrada y sigue las instrucciones del correo. 
-              Si no lo encuentras, revisa tu carpeta de spam.
+              Revisa tu bandeja de entrada y sigue las instrucciones recibidas. Si no lo ves, verifica la carpeta de spam.
             </Text>
 
             <TouchableOpacity
@@ -97,37 +97,42 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#6B8E23" />
           </TouchableOpacity>
-          
+
           <View style={styles.logoContainer}>
-            <Heart size={40} color="#6B8E23" />
+            <Image
+              source={require('../../assets/images/logo_toto.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Logo Toto"
+            />
           </View>
-          <Text style={styles.title}>Recuperar Contraseña</Text>
+          <Text style={styles.title}>Restablece tu contraseña</Text>
           <Text style={styles.subtitle}>
-            Ingresa tu correo electrónico y te enviaremos las instrucciones 
-            para restablecer tu contraseña
+            Introduce tu correo electrónico y te enviaremos un enlace para restablecerla.
           </Text>
         </View>
 
         {/* Form */}
         <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>Restablecer Contraseña</Text>
-          
+          <Text style={styles.formTitle}>Solicitar restablecimiento</Text>
+
           {/* Email Input */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Correo electrónico</Text>
@@ -154,7 +159,7 @@ export default function ForgotPasswordScreen() {
           >
             <Send size={20} color="white" />
             <Text style={styles.sendButtonText}>
-              {isLoading ? 'Enviando...' : 'Enviar Instrucciones'}
+              {isLoading ? 'Enviando...' : 'Enviar enlace de restablecimiento'}
             </Text>
           </TouchableOpacity>
 
@@ -173,7 +178,7 @@ export default function ForgotPasswordScreen() {
         <View style={styles.helpContainer}>
           <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
           <Text style={styles.helpText}>
-            Si tienes problemas para recuperar tu cuenta, puedes contactar 
+            Si tienes problemas para recuperar tu cuenta, puedes contactar
             a nuestro equipo de soporte técnico.
           </Text>
           <TouchableOpacity style={styles.supportButton}>
@@ -188,7 +193,9 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F2EFEB', // Color beige
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -231,9 +238,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 28,
@@ -241,6 +247,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -266,6 +273,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 20,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   inputContainer: {
     marginBottom: 24,
@@ -337,6 +345,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   helpText: {
     fontSize: 14,
@@ -372,6 +381,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   successMessage: {
     fontSize: 16,
@@ -388,10 +398,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   instructionText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 32,
     paddingHorizontal: 16,
   },
