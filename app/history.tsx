@@ -4,15 +4,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert as RNAlert,
 } from 'react-native';
 import { ChevronLeft, TriangleAlert as AlertTriangle, CircleHelp as HelpCircle, Pill, Check, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { useAuth } from '../context/auth-context';
+import { apiClient } from '../api/client';
+import { HistoryEventDTO } from '../api/types';
 
 type AlertType = 'fall' | 'help' | 'medication_taken' | 'medication_missed';
 
 interface Alert {
-  id: string;
+  id: number;
   type: AlertType;
   title: string;
   description: string;
@@ -21,64 +26,78 @@ interface Alert {
   elderName: string;
 }
 
+// Helper to convert HistoryEventDTO to local Alert format
+const fromDTO = (dto: HistoryEventDTO): Alert => {
+  const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
+  const dd = String(timestamp.getDate()).padStart(2, '0');
+  const mm = String(timestamp.getMonth() + 1).padStart(2, '0');
+  const yyyy = timestamp.getFullYear();
+  const hh = String(timestamp.getHours()).padStart(2, '0');
+  const min = String(timestamp.getMinutes()).padStart(2, '0');
+  
+  // Map eventType to AlertType
+  let type: AlertType = 'help';
+  let title = dto.eventType;
+  
+  if (dto.eventType.toLowerCase().includes('fall') || dto.eventType.toLowerCase().includes('caída')) {
+    type = 'fall';
+    title = 'Caída detectada';
+  } else if (dto.eventType.toLowerCase().includes('help') || dto.eventType.toLowerCase().includes('auxilio')) {
+    type = 'help';
+    title = 'Pedido de auxilio';
+  } else if (dto.eventType.toLowerCase().includes('medication_taken') || dto.eventType.toLowerCase().includes('tomada')) {
+    type = 'medication_taken';
+    title = 'Medicación tomada';
+  } else if (dto.eventType.toLowerCase().includes('medication_missed') || dto.eventType.toLowerCase().includes('no tomada')) {
+    type = 'medication_missed';
+    title = 'Medicación no tomada';
+  }
+  
+  return {
+    id: dto.id || 0,
+    type,
+    title,
+    description: dto.details || '',
+    date: `${dd}/${mm}/${yyyy}`,
+    time: `${hh}:${min}`,
+    elderName: 'Usuario'
+  };
+};
+
 export default function HistoryScreen() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<AlertType | 'all'>('all');
-  const [alerts] = useState<Alert[]>([
-    {
-      id: '1',
-      type: 'fall',
-      title: 'Caída detectada',
-      description: 'Se detectó una caída',
-      date: '15/03/2025',
-      time: '14:30',
-      elderName: 'Juan Pablo'
-    },
-    {
-      id: '2',
-      type: 'help',
-      title: 'Pedido de auxilio',
-      description: 'Se detectó una solicitud de ayuda',
-      date: '14/03/2025',
-      time: '09:15',
-      elderName: 'Juan Pablo'
-    },
-    {
-      id: '3',
-      type: 'medication_taken',
-      title: 'Medicación tomada',
-      description: 'Aspirina - 100mg',
-      date: '14/03/2025',
-      time: '08:00',
-      elderName: 'Juan Pablo'
-    },
-    {
-      id: '4',
-      type: 'medication_missed',
-      title: 'Medicación no tomada',
-      description: 'Omeprazol - 20mg',
-      date: '13/03/2025',
-      time: '20:00',
-      elderName: 'Juan Pablo'
-    },
-    {
-      id: '5',
-      type: 'fall',
-      title: 'Caída detectada',
-      description: 'Se detectó una caída',
-      date: '12/03/2025',
-      time: '16:45',
-      elderName: 'Juan Pablo'
-    },
-    {
-      id: '6',
-      type: 'medication_taken',
-      title: 'Medicación tomada',
-      description: 'Atorvastatina - 10mg',
-      date: '12/03/2024',
-      time: '08:00',
-      elderName: 'Juan Pablo'
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  // Load history from API
+  const loadHistory = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      // Get events from the last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      const startStr = startDate.toISOString();
+      const endStr = endDate.toISOString();
+      
+      const data = await apiClient.getHistoryByUserId(user.id, startStr, endStr);
+      setAlerts(data.map(fromDTO));
+    } catch (error: any) {
+      console.error('Error loading history:', error);
+      RNAlert.alert('Error', error.message || 'No se pudo cargar el historial');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  // Load history when component mounts or user changes
+  useEffect(() => {
+    loadHistory();
+  }, [user]);
 
   const getFilteredAlerts = () => {
     if (activeFilter === 'all') return alerts;
@@ -173,7 +192,12 @@ export default function HistoryScreen() {
           {renderFilterButton('medication_missed', 'No tomada', <X size={16} color={activeFilter === 'medication_missed' ? 'white' : '#6B7280'} />)}
         </View>
 
-        {getFilteredAlerts().length === 0 ? (
+        {loading && alerts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color="#4F46E5" />
+            <Text style={styles.emptySubtitle}>Cargando historial...</Text>
+          </View>
+        ) : getFilteredAlerts().length === 0 ? (
           <View style={styles.emptyState}>
             <AlertTriangle size={48} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>No hay alertas</Text>
