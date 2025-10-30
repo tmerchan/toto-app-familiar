@@ -58,7 +58,7 @@ export default function RegisterScreen() {
     try {
       setIsLoading(true);
       clearError();
-      
+
       await register({
         name,
         email,
@@ -80,7 +80,7 @@ export default function RegisterScreen() {
     } catch (error: any) {
       console.error('Register error:', error);
       const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
-      
+
       // Show field errors if available
       if (error?.fieldErrors) {
         const fieldErrors = Object.entries(error.fieldErrors)

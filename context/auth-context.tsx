@@ -2,150 +2,150 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, STORAGE_KEYS } from '../api/client';
 import type {
-  LoginRequest,
-  RegisterRequest,
-  UserDTO,
-  LoginResponse,
-  ApiError,
+    LoginRequest,
+    RegisterRequest,
+    UserDTO,
+    LoginResponse,
+    ApiError,
 } from '../api/types';
 
 interface AuthContextType {
-  user: UserDTO | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  error: ApiError | null;
-  login: (credentials: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
+    user: UserDTO | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+    error: ApiError | null;
+    login: (credentials: LoginRequest) => Promise<void>;
+    register: (data: RegisterRequest) => Promise<void>;
+    logout: () => Promise<void>;
+    clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<UserDTO | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<ApiError | null>(null);
+    const [user, setUser] = useState<UserDTO | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<ApiError | null>(null);
 
-  useEffect(() => {
-    loadStoredAuth();
-  }, []);
+    useEffect(() => {
+        loadStoredAuth();
+    }, []);
 
-  const loadStoredAuth = async () => {
-    try {
-      const [storedUser, accessToken] = await AsyncStorage.multiGet([
-        STORAGE_KEYS.USER,
-        STORAGE_KEYS.ACCESS_TOKEN,
-      ]);
-
-      if (storedUser[1] && accessToken[1]) {
-        setUser(JSON.parse(storedUser[1]));
-        
-        // Optionally verify token is still valid
+    const loadStoredAuth = async () => {
         try {
-          const currentUser = await apiClient.getCurrentUser();
-          setUser(currentUser);
-          await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
+            const [storedUser, accessToken] = await AsyncStorage.multiGet([
+                STORAGE_KEYS.USER,
+                STORAGE_KEYS.ACCESS_TOKEN,
+            ]);
+
+            if (storedUser[1] && accessToken[1]) {
+                setUser(JSON.parse(storedUser[1]));
+
+                // Optionally verify token is still valid
+                try {
+                    const currentUser = await apiClient.getCurrentUser();
+                    setUser(currentUser);
+                    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
+                } catch (error) {
+                    // Token invalid, clear auth
+                    await clearAuth();
+                }
+            }
         } catch (error) {
-          // Token invalid, clear auth
-          await clearAuth();
+            console.error('Error loading stored auth:', error);
+        } finally {
+            setIsLoading(false);
         }
-      }
-    } catch (error) {
-      console.error('Error loading stored auth:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const saveAuthData = async (authResponse: LoginResponse) => {
-    const { accessToken, refreshToken, user: userData } = authResponse;
-    
-    await AsyncStorage.multiSet([
-      [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-      [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-      [STORAGE_KEYS.USER, JSON.stringify(userData)],
-    ]);
-    
-    setUser(userData);
-  };
+    const saveAuthData = async (authResponse: LoginResponse) => {
+        const { accessToken, refreshToken, user: userData } = authResponse;
 
-  const clearAuth = async () => {
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.ACCESS_TOKEN,
-      STORAGE_KEYS.REFRESH_TOKEN,
-      STORAGE_KEYS.USER,
-    ]);
-    setUser(null);
-  };
+        await AsyncStorage.multiSet([
+            [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
+            [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+            [STORAGE_KEYS.USER, JSON.stringify(userData)],
+        ]);
 
-  const login = async (credentials: LoginRequest) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await apiClient.login(credentials);
-      await saveAuthData(response);
-    } catch (err: any) {
-      setError(err as ApiError);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setUser(userData);
+    };
 
-  const register = async (data: RegisterRequest) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await apiClient.register(data);
-      await saveAuthData(response);
-    } catch (err: any) {
-      setError(err as ApiError);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const clearAuth = async () => {
+        await AsyncStorage.multiRemove([
+            STORAGE_KEYS.ACCESS_TOKEN,
+            STORAGE_KEYS.REFRESH_TOKEN,
+            STORAGE_KEYS.USER,
+        ]);
+        setUser(null);
+    };
 
-  const logout = async () => {
-    try {
-      setIsLoading(true);
-      await clearAuth();
-    } catch (err) {
-      console.error('Error during logout:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const login = async (credentials: LoginRequest) => {
+        try {
+            setIsLoading(true);
+            setError(null);
 
-  const clearError = () => {
-    setError(null);
-  };
+            const response = await apiClient.login(credentials);
+            await saveAuthData(response);
+        } catch (err: any) {
+            setError(err as ApiError);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const value: AuthContextType = {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    error,
-    login,
-    register,
-    logout,
-    clearError,
-  };
+    const register = async (data: RegisterRequest) => {
+        try {
+            setIsLoading(true);
+            setError(null);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+            const response = await apiClient.register(data);
+            await saveAuthData(response);
+        } catch (err: any) {
+            setError(err as ApiError);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const logout = async () => {
+        try {
+            setIsLoading(true);
+            await clearAuth();
+        } catch (err) {
+            console.error('Error during logout:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const clearError = () => {
+        setError(null);
+    };
+
+    const value: AuthContextType = {
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        error,
+        login,
+        register,
+        logout,
+        clearError,
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 }

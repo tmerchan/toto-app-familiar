@@ -33,9 +33,9 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       clearError();
-      
+
       await login({ email, password });
-      
+
       // After successful login, check terms
       if (!acceptedTerms) {
         router.replace('/(auth)/terms-and-conditions');

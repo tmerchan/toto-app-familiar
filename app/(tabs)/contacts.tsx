@@ -14,6 +14,9 @@ import {
 } from 'react-native';
 import { User, Phone, Pencil, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../context/auth-context';
+import { apiClient } from '../../api/client';
+import type { ContactDTO } from '../../api/types';
 
 const BRAND = '#6B8E23';
 const MAX_WIDTH = 420;
@@ -33,7 +36,7 @@ interface ElderlyPerson {
 }
 
 interface TrustedContact {
-  id: string;
+  id: number;
   name: string;
   relationship: string;
   phone: string;
@@ -47,13 +50,14 @@ const isPhoneValid = (s: string) => {
 };
 
 export default function ContactsScreen() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'elderly' | 'contacts'>('elderly');
   const [isEditing, setIsEditing] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [editingContact, setEditingContact] = useState<TrustedContact | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const initialElderlyData: ElderlyPerson = {
     name: 'Juan Pablo Yoo',
@@ -67,45 +71,59 @@ export default function ContactsScreen() {
   const [elderlyData, setElderlyData] = useState<ElderlyPerson>(initialElderlyData);
   const [originalElderlyData, setOriginalElderlyData] = useState<ElderlyPerson>(initialElderlyData);
 
-  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([
-    { id: '1', name: 'Tamara Merchan', relationship: 'Hija', phone: '+1 234 567 8901' },
-    { id: '2', name: 'Dr. García', relationship: 'Médico', phone: '+1 234 567 8902' },
-  ]);
+  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
 
   const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
   const [showRelationPicker, setShowRelationPicker] = useState(false);
 
   // Modal de confirmación de borrado
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Cargar contactos desde el backend
+  const loadContacts = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const contacts = await apiClient.getContactsByElderlyId(user.id);
+      setTrustedContacts(contacts.map(c => ({
+        id: c.id!,
+        name: c.name,
+        relationship: c.relationship || '',
+        phone: c.phone
+      })));
+    } catch (err: any) {
+      console.error('Error loading contacts:', err);
+      setError(err?.message || 'Error al cargar contactos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Cargar persistidos
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const [cRaw, eRaw] = await Promise.all([
-          AsyncStorage.getItem(STORAGE.CONTACTS),
-          AsyncStorage.getItem(STORAGE.ELDERLY),
-        ]);
-        if (cRaw) setTrustedContacts(JSON.parse(cRaw));
+        // Cargar persona mayor desde AsyncStorage
+        const eRaw = await AsyncStorage.getItem(STORAGE.ELDERLY);
         if (eRaw) {
           const parsed = JSON.parse(eRaw) as ElderlyPerson;
           setElderlyData(parsed);
           setOriginalElderlyData(parsed);
         }
+        
+        // Cargar contactos desde el backend
+        await loadContacts();
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [user]);
 
-  // Persistir contactos cada vez que cambian
-  useEffect(() => {
-    AsyncStorage.setItem(STORAGE.CONTACTS, JSON.stringify(trustedContacts)).catch(() => { });
-  }, [trustedContacts]);
-
-  // Persistir persona mayor al guardar
+  // Persistir persona mayor al guardar (sigue usando AsyncStorage para datos locales)
   const persistElderly = async (next: ElderlyPerson) => {
     setElderlyData(next);
     setOriginalElderlyData(next);
@@ -135,8 +153,10 @@ export default function ContactsScreen() {
     ]);
   };
 
-  // Contactos
-  const handleAddContact = () => {
+  // Contactos - Ahora con API
+  const handleAddContact = async () => {
+    if (!user) return;
+    
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
@@ -150,16 +170,32 @@ export default function ContactsScreen() {
       return;
     }
 
-    const contact: TrustedContact = {
-      id: Date.now().toString(),
-      name,
-      relationship,
-      phone,
-    };
-    setTrustedContacts((prev) => [...prev, contact]);
-    setNewContact({ name: '', relationship: '', phone: '' });
-    setShowContactModal(false);
-    Alert.alert('Éxito', 'Contacto agregado correctamente');
+    try {
+      setLoading(true);
+      const contactDTO: ContactDTO = {
+        elderlyId: user.id,
+        name,
+        relationship,
+        phone,
+      };
+      
+      const created = await apiClient.createContact(contactDTO);
+      setTrustedContacts((prev) => [...prev, {
+        id: created.id!,
+        name: created.name,
+        relationship: created.relationship || '',
+        phone: created.phone
+      }]);
+      
+      setNewContact({ name: '', relationship: '', phone: '' });
+      setShowContactModal(false);
+      Alert.alert('Éxito', 'Contacto agregado correctamente');
+    } catch (err: any) {
+      console.error('Error adding contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo agregar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditContact = (contact: TrustedContact) => {
@@ -168,8 +204,8 @@ export default function ContactsScreen() {
     setShowContactModal(true);
   };
 
-  const handleUpdateContact = () => {
-    if (!editingContact) return;
+  const handleUpdateContact = async () => {
+    if (!editingContact || !user) return;
 
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
@@ -184,25 +220,58 @@ export default function ContactsScreen() {
       return;
     }
 
-    setTrustedContacts((prev) =>
-      prev.map((c) => (c.id === editingContact.id ? { ...c, name, relationship, phone } : c))
-    );
-    setNewContact({ name: '', relationship: '', phone: '' });
-    setEditingContact(null);
-    setShowContactModal(false);
-    Alert.alert('Éxito', 'Contacto actualizado correctamente');
+    try {
+      setLoading(true);
+      const contactDTO: ContactDTO = {
+        elderlyId: user.id,
+        name,
+        relationship,
+        phone,
+      };
+      
+      const updated = await apiClient.updateContact(editingContact.id, contactDTO);
+      setTrustedContacts((prev) =>
+        prev.map((c) => (c.id === editingContact.id ? {
+          id: updated.id!,
+          name: updated.name,
+          relationship: updated.relationship || '',
+          phone: updated.phone
+        } : c))
+      );
+      
+      setNewContact({ name: '', relationship: '', phone: '' });
+      setEditingContact(null);
+      setShowContactModal(false);
+      Alert.alert('Éxito', 'Contacto actualizado correctamente');
+    } catch (err: any) {
+      console.error('Error updating contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo actualizar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const askDeleteContact = (contactId: string) => {
+  const askDeleteContact = (contactId: number) => {
     setConfirmDeleteId(contactId);
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!confirmDeleteId) return;
-    setTrustedContacts((prev) => prev.filter((c) => c.id !== confirmDeleteId));
-    setConfirmDeleteId(null);
-    setShowDeleteModal(false);
+    
+    try {
+      setLoading(true);
+      await apiClient.deleteContact(confirmDeleteId);
+      setTrustedContacts((prev) => prev.filter((c) => c.id !== confirmDeleteId));
+      setConfirmDeleteId(null);
+      setShowDeleteModal(false);
+      Alert.alert('Éxito', 'Contacto eliminado correctamente');
+    } catch (err: any) {
+      console.error('Error deleting contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo eliminar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const closeModal = () => {
@@ -392,7 +461,7 @@ export default function ContactsScreen() {
               ) : (
                 <FlatList
                   data={trustedContacts}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => item.id.toString()}
                   contentContainerStyle={{ paddingVertical: 4 }}
                   renderItem={({ item }) => (
                     <View style={styles.contactCard}>
