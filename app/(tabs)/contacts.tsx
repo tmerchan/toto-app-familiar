@@ -83,7 +83,7 @@ export default function ContactsScreen() {
   // Cargar contactos desde el backend
   const loadContacts = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -114,7 +114,7 @@ export default function ContactsScreen() {
           setElderlyData(parsed);
           setOriginalElderlyData(parsed);
         }
-        
+
         // Cargar contactos desde el backend
         await loadContacts();
       } finally {
@@ -156,7 +156,7 @@ export default function ContactsScreen() {
   // Contactos - Ahora con API
   const handleAddContact = async () => {
     if (!user) return;
-    
+
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
@@ -178,7 +178,7 @@ export default function ContactsScreen() {
         relationship,
         phone,
       };
-      
+
       const created = await apiClient.createContact(contactDTO);
       setTrustedContacts((prev) => [...prev, {
         id: created.id!,
@@ -186,7 +186,7 @@ export default function ContactsScreen() {
         relationship: created.relationship || '',
         phone: created.phone
       }]);
-      
+
       setNewContact({ name: '', relationship: '', phone: '' });
       setShowContactModal(false);
       Alert.alert('Éxito', 'Contacto agregado correctamente');
@@ -228,7 +228,7 @@ export default function ContactsScreen() {
         relationship,
         phone,
       };
-      
+
       const updated = await apiClient.updateContact(editingContact.id, contactDTO);
       setTrustedContacts((prev) =>
         prev.map((c) => (c.id === editingContact.id ? {
@@ -238,7 +238,7 @@ export default function ContactsScreen() {
           phone: updated.phone
         } : c))
       );
-      
+
       setNewContact({ name: '', relationship: '', phone: '' });
       setEditingContact(null);
       setShowContactModal(false);
@@ -258,7 +258,7 @@ export default function ContactsScreen() {
 
   const confirmDelete = async () => {
     if (!confirmDeleteId) return;
-    
+
     try {
       setLoading(true);
       await apiClient.deleteContact(confirmDeleteId);

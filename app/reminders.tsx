@@ -7,11 +7,15 @@ import {
   TextInput,
   Alert,
   Modal,
-  Switch
+  Switch,
+  ActivityIndicator
 } from 'react-native';
 import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, Bell, ChevronLeft } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { useAuth } from '../context/auth-context';
+import { apiClient } from '../api/client';
+import { ReminderDTO } from '../api/types';
 
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
@@ -53,8 +57,9 @@ const isValidTime = (s: string) => {
   return /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.test(s);
 };
 
+// Local interface for UI purposes
 interface Reminder {
-  id: string;
+  id: number;
   type: 'medication' | 'appointment' | 'event';
   title: string;
   description: string;
@@ -68,8 +73,90 @@ interface Reminder {
   location?: string;
 }
 
+// Helper to convert ReminderDTO to local Reminder format
+const fromDTO = (dto: ReminderDTO): Reminder => {
+  const reminderDate = new Date(dto.reminderTime);
+  const dd = String(reminderDate.getDate()).padStart(2, '0');
+  const mm = String(reminderDate.getMonth() + 1).padStart(2, '0');
+  const yyyy = reminderDate.getFullYear();
+  const hh = String(reminderDate.getHours()).padStart(2, '0');
+  const min = String(reminderDate.getMinutes()).padStart(2, '0');
+  
+  // Parse description for extra fields (format: type|key:value|key:value|...)
+  const parts = (dto.description || '').split('|');
+  const type = (parts[0] || 'medication') as 'medication' | 'appointment' | 'event';
+  
+  let dosage: string | undefined;
+  let doctor: string | undefined;
+  let location: string | undefined;
+  let leadTimeMinutes: number | undefined;
+  let description = '';
+  
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.startsWith('dosage:')) {
+      dosage = part.substring(7);
+    } else if (part.startsWith('doctor:')) {
+      doctor = part.substring(7);
+    } else if (part.startsWith('location:')) {
+      location = part.substring(9);
+    } else if (part.startsWith('leadTime:')) {
+      leadTimeMinutes = parseInt(part.substring(9), 10);
+    } else {
+      description = part;
+    }
+  }
+  
+  return {
+    id: dto.id || 0,
+    type,
+    title: dto.title,
+    description,
+    date: `${dd}/${mm}/${yyyy}`,
+    time: `${hh}:${min}`,
+    isActive: dto.active ?? true,
+    frequency: dto.repeatPattern === 'DAILY' ? 'daily' :
+               dto.repeatPattern === 'WEEKLY' ? 'weekly' :
+               dto.repeatPattern === 'MONTHLY' ? 'monthly' :
+               dto.repeatPattern === 'NONE' ? 'once' : 'once',
+    dosage,
+    doctor,
+    location,
+    leadTimeMinutes
+  };
+};
+
+// Helper to convert local Reminder to ReminderDTO
+const toDTO = (reminder: Partial<Reminder>, elderlyId: number): Omit<ReminderDTO, 'id' | 'createdAt' | 'updatedAt'> => {
+  // Combine date (DD/MM/YYYY) and time (HH:MM) into ISO 8601
+  const dateParts = (reminder.date || '').split('/');
+  const timeParts = (reminder.time || '').split(':');
+  const isoString = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${timeParts[0]}:${timeParts[1]}:00`;
+  
+  // Encode extra data into description field
+  const descParts: string[] = [reminder.type || 'medication'];
+  if (reminder.dosage) descParts.push(`dosage:${reminder.dosage}`);
+  if (reminder.doctor) descParts.push(`doctor:${reminder.doctor}`);
+  if (reminder.location) descParts.push(`location:${reminder.location}`);
+  if (reminder.leadTimeMinutes) descParts.push(`leadTime:${reminder.leadTimeMinutes}`);
+  if (reminder.description) descParts.push(reminder.description);
+  
+  return {
+    elderlyId,
+    title: reminder.title || '',
+    description: descParts.join('|'),
+    reminderTime: isoString,
+    repeatPattern: reminder.frequency === 'daily' ? 'DAILY' :
+                   reminder.frequency === 'weekly' ? 'WEEKLY' :
+                   reminder.frequency === 'monthly' ? 'MONTHLY' : 'NONE',
+    active: reminder.isActive ?? true
+  };
+};
+
 export default function RemindersScreen() {
+  const { user } = useAuth();
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'medication' | 'appointment' | 'event'>('all');
@@ -88,6 +175,27 @@ export default function RemindersScreen() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load reminders from API
+  const loadReminders = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const data = await apiClient.getRemindersByElderlyId(user.id, false);
+      setReminders(data.map(fromDTO));
+    } catch (error: any) {
+      console.error('Error loading reminders:', error);
+      Alert.alert('Error', error.message || 'No se pudieron cargar los recordatorios');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load reminders when component mounts or user changes
+  useEffect(() => {
+    loadReminders();
+  }, [user]);
 
   const setField = (key: keyof Reminder, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -132,7 +240,7 @@ export default function RemindersScreen() {
     resetForm();
   };
 
-  const saveReminder = () => {
+  const saveReminder = async () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.title?.trim()) newErrors.title = 'El título es obligatorio.';
@@ -166,8 +274,13 @@ export default function RemindersScreen() {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert('Error', 'Usuario no autenticado');
+      return;
+    }
+
     const reminderData: Reminder = {
-      id: editingReminder?.id || Date.now().toString(),
+      id: editingReminder?.id || Date.now(),
       type: formData.type || 'medication',
       title: formData.title?.trim() || '',
       description: formData.description || '',
@@ -189,18 +302,30 @@ export default function RemindersScreen() {
       location: formData.location
     };
 
-    if (editingReminder) {
-      setReminders(prev => prev.map(r => r.id === editingReminder.id ? reminderData : r));
-      Alert.alert('Éxito', 'Recordatorio actualizado correctamente');
-    } else {
-      setReminders(prev => [...prev, reminderData]);
-      Alert.alert('Éxito', 'Recordatorio creado correctamente');
+    try {
+      setLoading(true);
+      if (editingReminder) {
+        // Update existing reminder
+        const dto = toDTO(reminderData, user.id);
+        await apiClient.updateReminder(editingReminder.id, { ...dto, id: editingReminder.id });
+        Alert.alert('Éxito', 'Recordatorio actualizado correctamente');
+      } else {
+        // Create new reminder
+        const dto = toDTO(reminderData, user.id);
+        await apiClient.createReminder(dto);
+        Alert.alert('Éxito', 'Recordatorio creado correctamente');
+      }
+      await loadReminders(); // Reload from server
+      closeModal();
+    } catch (error: any) {
+      console.error('Error saving reminder:', error);
+      Alert.alert('Error', error.message || 'No se pudo guardar el recordatorio');
+    } finally {
+      setLoading(false);
     }
-
-    closeModal();
   };
 
-  const deleteReminder = (id: string) => {
+  const deleteReminder = async (id: number) => {
     Alert.alert(
       'Eliminar Recordatorio',
       '¿Estás seguro de que quieres eliminar este recordatorio?',
@@ -209,19 +334,35 @@ export default function RemindersScreen() {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            setReminders(prev => prev.filter(r => r.id !== id));
-            Alert.alert('Éxito', 'Recordatorio eliminado');
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.deleteReminder(id);
+              Alert.alert('Éxito', 'Recordatorio eliminado');
+              await loadReminders();
+            } catch (error: any) {
+              console.error('Error deleting reminder:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar el recordatorio');
+            } finally {
+              setLoading(false);
+            }
           }
         }
       ]
     );
   };
 
-  const toggleReminderStatus = (id: string) => {
-    setReminders(prev => prev.map(r =>
-      r.id === id ? { ...r, isActive: !r.isActive } : r
-    ));
+  const toggleReminderStatus = async (id: number) => {
+    try {
+      setLoading(true);
+      await apiClient.toggleReminderActive(id);
+      await loadReminders();
+    } catch (error: any) {
+      console.error('Error toggling reminder:', error);
+      Alert.alert('Error', error.message || 'No se pudo cambiar el estado del recordatorio');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getFilteredReminders = () => {
@@ -405,7 +546,12 @@ export default function RemindersScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
       >
-        {getFilteredReminders().length === 0 ? (
+        {loading && reminders.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color="#4F46E5" />
+            <Text style={styles.emptySubtitle}>Cargando recordatorios...</Text>
+          </View>
+        ) : getFilteredReminders().length === 0 ? (
           <View style={styles.emptyState}>
             <Bell size={48} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>No hay recordatorios</Text>
