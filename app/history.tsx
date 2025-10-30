@@ -34,11 +34,11 @@ const fromDTO = (dto: HistoryEventDTO): Alert => {
   const yyyy = timestamp.getFullYear();
   const hh = String(timestamp.getHours()).padStart(2, '0');
   const min = String(timestamp.getMinutes()).padStart(2, '0');
-  
+
   // Map eventType to AlertType
   let type: AlertType = 'help';
   let title = dto.eventType;
-  
+
   if (dto.eventType.toLowerCase().includes('fall') || dto.eventType.toLowerCase().includes('caída')) {
     type = 'fall';
     title = 'Caída detectada';
@@ -52,7 +52,7 @@ const fromDTO = (dto: HistoryEventDTO): Alert => {
     type = 'medication_missed';
     title = 'Medicación no tomada';
   }
-  
+
   return {
     id: dto.id || 0,
     type,
@@ -73,17 +73,17 @@ export default function HistoryScreen() {
   // Load history from API
   const loadHistory = async () => {
     if (!user?.id) return;
-    
+
     try {
       setLoading(true);
       // Get events from the last 30 days
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
-      
+
       const startStr = startDate.toISOString();
       const endStr = endDate.toISOString();
-      
+
       const data = await apiClient.getHistoryByUserId(user.id, startStr, endStr);
       setAlerts(data.map(fromDTO));
     } catch (error: any) {

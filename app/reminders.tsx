@@ -81,17 +81,17 @@ const fromDTO = (dto: ReminderDTO): Reminder => {
   const yyyy = reminderDate.getFullYear();
   const hh = String(reminderDate.getHours()).padStart(2, '0');
   const min = String(reminderDate.getMinutes()).padStart(2, '0');
-  
+
   // Parse description for extra fields (format: type|key:value|key:value|...)
   const parts = (dto.description || '').split('|');
   const type = (parts[0] || 'medication') as 'medication' | 'appointment' | 'event';
-  
+
   let dosage: string | undefined;
   let doctor: string | undefined;
   let location: string | undefined;
   let leadTimeMinutes: number | undefined;
   let description = '';
-  
+
   for (let i = 1; i < parts.length; i++) {
     const part = parts[i];
     if (part.startsWith('dosage:')) {
@@ -106,7 +106,7 @@ const fromDTO = (dto: ReminderDTO): Reminder => {
       description = part;
     }
   }
-  
+
   return {
     id: dto.id || 0,
     type,
@@ -116,9 +116,9 @@ const fromDTO = (dto: ReminderDTO): Reminder => {
     time: `${hh}:${min}`,
     isActive: dto.active ?? true,
     frequency: dto.repeatPattern === 'DAILY' ? 'daily' :
-               dto.repeatPattern === 'WEEKLY' ? 'weekly' :
-               dto.repeatPattern === 'MONTHLY' ? 'monthly' :
-               dto.repeatPattern === 'NONE' ? 'once' : 'once',
+      dto.repeatPattern === 'WEEKLY' ? 'weekly' :
+        dto.repeatPattern === 'MONTHLY' ? 'monthly' :
+          dto.repeatPattern === 'NONE' ? 'once' : 'once',
     dosage,
     doctor,
     location,
@@ -132,7 +132,7 @@ const toDTO = (reminder: Partial<Reminder>, elderlyId: number): Omit<ReminderDTO
   const dateParts = (reminder.date || '').split('/');
   const timeParts = (reminder.time || '').split(':');
   const isoString = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${timeParts[0]}:${timeParts[1]}:00`;
-  
+
   // Encode extra data into description field
   const descParts: string[] = [reminder.type || 'medication'];
   if (reminder.dosage) descParts.push(`dosage:${reminder.dosage}`);
@@ -140,15 +140,15 @@ const toDTO = (reminder: Partial<Reminder>, elderlyId: number): Omit<ReminderDTO
   if (reminder.location) descParts.push(`location:${reminder.location}`);
   if (reminder.leadTimeMinutes) descParts.push(`leadTime:${reminder.leadTimeMinutes}`);
   if (reminder.description) descParts.push(reminder.description);
-  
+
   return {
     elderlyId,
     title: reminder.title || '',
     description: descParts.join('|'),
     reminderTime: isoString,
     repeatPattern: reminder.frequency === 'daily' ? 'DAILY' :
-                   reminder.frequency === 'weekly' ? 'WEEKLY' :
-                   reminder.frequency === 'monthly' ? 'MONTHLY' : 'NONE',
+      reminder.frequency === 'weekly' ? 'WEEKLY' :
+        reminder.frequency === 'monthly' ? 'MONTHLY' : 'NONE',
     active: reminder.isActive ?? true
   };
 };
@@ -179,7 +179,7 @@ export default function RemindersScreen() {
   // Load reminders from API
   const loadReminders = async () => {
     if (!user?.id) return;
-    
+
     try {
       setLoading(true);
       const data = await apiClient.getRemindersByElderlyId(user.id, false);
@@ -457,9 +457,9 @@ export default function RemindersScreen() {
           <Text style={styles.reminderFrequency}>
             🔄 {
               reminder.frequency === 'daily' ? 'Diario' :
-              reminder.frequency === 'weekly' ? 'Semanal' :
-              reminder.frequency === 'monthly' ? 'Mensual' :
-              reminder.frequency === 'yearly' ? 'Anual' : 'Una vez'
+                reminder.frequency === 'weekly' ? 'Semanal' :
+                  reminder.frequency === 'monthly' ? 'Mensual' :
+                    reminder.frequency === 'yearly' ? 'Anual' : 'Una vez'
             }
           </Text>
         )}
@@ -508,7 +508,7 @@ export default function RemindersScreen() {
           keyboardType={keyboardType}
           maxLength={
             label.startsWith('Fecha') ? 10 :
-            label.startsWith('Hora') ? 8 : undefined
+              label.startsWith('Hora') ? 8 : undefined
           }
         />
         {isError && <Text style={styles.errorText}>{errMsg}</Text>}
@@ -535,7 +535,7 @@ export default function RemindersScreen() {
           contentContainerStyle={styles.tabsRow}
         >
           {renderTabButton('all', 'Todos')}
-          {renderTabButton('medication', 'Medicación', { minWidth: 150 })} 
+          {renderTabButton('medication', 'Medicación', { minWidth: 150 })}
           {renderTabButton('appointment', 'Citas')}
           {renderTabButton('event', 'Eventos')}
         </ScrollView>
@@ -700,8 +700,8 @@ export default function RemindersScreen() {
                         numberOfLines={2}
                       >
                         {freq === 'once' ? 'Una vez' :
-                         freq === 'daily' ? 'Diario' :
-                         freq === 'weekly' ? 'Semanal' : 'Mensual'}
+                          freq === 'daily' ? 'Diario' :
+                            freq === 'weekly' ? 'Semanal' : 'Mensual'}
                       </Text>
                     </TouchableOpacity>
                   ))}
