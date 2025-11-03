@@ -25,6 +25,11 @@ import {
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../context/auth-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEYS = {
+  TERMS_ACCEPTED: '@toto_terms_accepted',
+};
 
 export default function RegisterScreen() {
   const { register, error: authError, clearError } = useAuth();
@@ -40,12 +45,18 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleRegister = async () => {
     const { name, email, phone, address, birthdate, password, confirmPassword } = formData;
 
     if (!name || !email || !phone || !address || !birthdate || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+
+    if (!termsAccepted) {
+      Alert.alert('Error', 'Debes aceptar los términos y condiciones para continuar');
       return;
     }
 
@@ -78,8 +89,11 @@ export default function RegisterScreen() {
         role: 'CAREGIVER',
       });
 
-      // Redirigir a términos y condiciones para aceptarlos
-      router.replace('/(auth)/terms-and-conditions');
+      // Guardar que aceptó los términos
+      await AsyncStorage.setItem(STORAGE_KEYS.TERMS_ACCEPTED, 'true');
+
+      // Redirigir a la app principal
+      router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Register error:', error);
       const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
@@ -313,11 +327,29 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          {/* Terms and Conditions Checkbox */}
+          <TouchableOpacity
+            style={styles.termsContainer}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <View style={styles.termsTextContainer}>
+              <Text style={styles.termsText}>Acepto los </Text>
+              <Link href="/terms-and-conditions" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.termsLink}>términos y condiciones</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </TouchableOpacity>
+
           {/* Register Button */}
           <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.buttonDisabled]}
+            style={[styles.registerButton, (isLoading || !termsAccepted) && styles.buttonDisabled]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isLoading || !termsAccepted}
           >
             <Text style={styles.registerButtonText}>
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
@@ -429,6 +461,45 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 4,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#6B8E23',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#6B8E23',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  termsTextContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  termsLink: {
+    fontSize: 14,
+    color: '#6B8E23',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   registerButton: {
     backgroundColor: '#6B8E23',

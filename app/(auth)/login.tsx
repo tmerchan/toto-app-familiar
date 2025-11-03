@@ -10,7 +10,6 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
@@ -37,14 +36,8 @@ export default function LoginScreen() {
       await login({ email, password });
 
       // Always check terms from AsyncStorage (fresh check)
-      const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
-      const termsAccepted = rawTerms ? JSON.parse(rawTerms) : false;
-      
-      if (!termsAccepted) {
-        router.replace('/(auth)/terms-and-conditions');
-      } else {
-        router.replace('/(tabs)');
-      }
+      // Redirigir directamente al home
+      router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Login error:', error);
       const errorMessage = error?.message || 'Error al iniciar sesión. Verifica tus credenciales.';

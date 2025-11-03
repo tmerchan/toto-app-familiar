@@ -354,9 +354,6 @@ export default function ContactsScreen() {
     try {
       setLoading(true);
       
-      // Log para debug
-      console.log('Creando adulto mayor:', { name, phone, address, birthdate, medicalInfo });
-      
       // Crear el adulto mayor usando el endpoint correcto
       const createdElderly = await apiClient.createElderly({
         name,
@@ -365,8 +362,6 @@ export default function ContactsScreen() {
         birthdate,
         medicalInfo,
       });
-
-      console.log('Adulto mayor creado:', createdElderly);
 
       // Crear la relación de cuidado entre el caregiver actual y el elderly
       if (createdElderly.id) {

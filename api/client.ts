@@ -155,9 +155,7 @@ class ApiClient {
     }
 
     async register(data: RegisterRequest): Promise<LoginResponse> {
-        console.log('API Client - enviando a backend:', JSON.stringify(data, null, 2));
         const response = await this.client.post<LoginResponse>('/auth/register', data);
-        console.log('API Client - respuesta del backend:', JSON.stringify(response.data, null, 2));
         return response.data;
     }
 
