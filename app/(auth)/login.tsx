@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
@@ -17,7 +18,6 @@ import { useProfile } from '../../context/profile-context';
 import { useAuth } from '../../context/auth-context';
 
 export default function LoginScreen() {
-  const { acceptedTerms } = useProfile();
   const { login, error: authError, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,8 +36,11 @@ export default function LoginScreen() {
 
       await login({ email, password });
 
-      // After successful login, check terms
-      if (!acceptedTerms) {
+      // Always check terms from AsyncStorage (fresh check)
+      const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
+      const termsAccepted = rawTerms ? JSON.parse(rawTerms) : false;
+      
+      if (!termsAccepted) {
         router.replace('/(auth)/terms-and-conditions');
       } else {
         router.replace('/(tabs)');
@@ -101,6 +104,7 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
+                autoCapitalize="none"
               />
               <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}

@@ -18,7 +18,9 @@ import {
   User,
   Phone,
   ArrowRight,
-  Heart
+  Heart,
+  MapPin,
+  Calendar
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
@@ -30,6 +32,8 @@ export default function RegisterScreen() {
     name: '',
     email: '',
     phone: '',
+    address: '',
+    birthdate: '',
     password: '',
     confirmPassword: ''
   });
@@ -38,9 +42,9 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    const { name, email, phone, password, confirmPassword } = formData;
+    const { name, email, phone, address, birthdate, password, confirmPassword } = formData;
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (!name || !email || !phone || !address || !birthdate || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
@@ -55,6 +59,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!validateBirthdate(birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA y verifica que seas mayor de 18 años.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       clearError();
@@ -63,20 +72,14 @@ export default function RegisterScreen() {
         name,
         email,
         phone,
+        address,
+        birthdate,
         password,
-        role: 'ELDERLY', // Default role, can be changed to add role selection
+        role: 'CAREGIVER',
       });
 
-      Alert.alert(
-        'Registro exitoso',
-        'Tu cuenta ha sido creada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)')
-          }
-        ]
-      );
+      // Redirigir a términos y condiciones para aceptarlos
+      router.replace('/(auth)/terms-and-conditions');
     } catch (error: any) {
       console.error('Register error:', error);
       const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
@@ -95,15 +98,57 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleGoogleRegister = async () => {
-    setIsLoading(true);
+  const formatBirthdate = (text: string) => {
+    // Eliminar todo lo que no sea número
+    const numbers = text.replace(/[^\d]/g, '');
+    
+    // Limitar a 8 dígitos
+    const limited = numbers.slice(0, 8);
+    
+    // Aplicar formato DD/MM/AAAA
+    if (limited.length <= 2) {
+      return limited;
+    } else if (limited.length <= 4) {
+      return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+    } else {
+      return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+    }
+  };
 
-    // Simular registro con Google
-    setTimeout(() => {
-      setIsLoading(false);
-      Alert.alert('Éxito', 'Registrándose con Google...');
-      router.replace('/(tabs)');
-    }, 1000);
+  const handleBirthdateChange = (text: string) => {
+    const formatted = formatBirthdate(text);
+    updateFormData('birthdate', formatted);
+  };
+
+  const validateBirthdate = (dateString: string): boolean => {
+    // Verificar formato DD/MM/AAAA
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateString.match(regex);
+    
+    if (!match) return false;
+    
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    
+    // Verificar rangos básicos
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    
+    // Verificar año razonable (mayor de 18 años y menor de 120 años)
+    const currentYear = new Date().getFullYear();
+    if (year < currentYear - 120 || year > currentYear - 18) return false;
+    
+    // Verificar días por mes
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    // Año bisiesto
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (isLeapYear) daysInMonth[1] = 29;
+    
+    if (day > daysInMonth[month - 1]) return false;
+    
+    return true;
   };
 
   const updateFormData = (field: string, value: string) => {
@@ -186,6 +231,36 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          {/* Address Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <MapPin size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Dirección"
+                value={formData.address}
+                onChangeText={(text) => updateFormData('address', text)}
+                autoCapitalize="words"
+                autoComplete="street-address"
+              />
+            </View>
+          </View>
+
+          {/* Birthdate Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Calendar size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Fecha de nacimiento (DD/MM/AAAA)"
+                value={formData.birthdate}
+                onChangeText={handleBirthdateChange}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+          </View>
+
           {/* Password Input */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
@@ -197,6 +272,7 @@ export default function RegisterScreen() {
                 onChangeText={(text) => updateFormData('password', text)}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
+                autoCapitalize="none"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -222,6 +298,7 @@ export default function RegisterScreen() {
                 onChangeText={(text) => updateFormData('confirmPassword', text)}
                 secureTextEntry={!showConfirmPassword}
                 autoComplete="new-password"
+                autoCapitalize="none"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -246,22 +323,6 @@ export default function RegisterScreen() {
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </Text>
             {!isLoading && <ArrowRight size={20} color="white" />}
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o regístrate con</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Register Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleRegister}
-            disabled={isLoading}
-          >
-            <Text style={styles.googleButtonText}>🔍 Google</Text>
           </TouchableOpacity>
 
           {/* Login Link */}
@@ -388,40 +449,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  googleButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
   },
   loginText: {
     fontSize: 14,

@@ -35,6 +35,54 @@ const isPhoneValid = (s: string) => {
   return digits.length >= 6 && digits.length <= 20;
 };
 
+const formatBirthdate = (text: string) => {
+  // Eliminar todo lo que no sea número
+  const numbers = text.replace(/[^\d]/g, '');
+  
+  // Limitar a 8 dígitos
+  const limited = numbers.slice(0, 8);
+  
+  // Aplicar formato DD/MM/AAAA
+  if (limited.length <= 2) {
+    return limited;
+  } else if (limited.length <= 4) {
+    return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+  } else {
+    return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+  }
+};
+
+const validateBirthdate = (dateString: string): boolean => {
+  // Verificar formato DD/MM/AAAA
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+  
+  if (!match) return false;
+  
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+  
+  // Verificar rangos básicos
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  
+  // Verificar año razonable (menor de 120 años)
+  const currentYear = new Date().getFullYear();
+  if (year < currentYear - 120 || year > currentYear) return false;
+  
+  // Verificar días por mes
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  // Año bisiesto
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  if (isLeapYear) daysInMonth[1] = 29;
+  
+  if (day > daysInMonth[month - 1]) return false;
+  
+  return true;
+};
+
 export default function ContactsScreen() {
   const { user } = useAuth();
   const { elderly, refreshElderly, isLoading: elderlyLoading, error: elderlyError } = useElderly();
@@ -63,6 +111,16 @@ export default function ContactsScreen() {
   // Modal de confirmación de borrado
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Modal para crear adulto mayor
+  const [showCreateElderlyModal, setShowCreateElderlyModal] = useState(false);
+  const [newElderlyData, setNewElderlyData] = useState({
+    name: '',
+    birthdate: '',
+    phone: '',
+    address: '',
+    medicalInfo: ''
+  });
 
   // Cargar contactos desde el backend
   const loadContacts = async () => {
@@ -104,6 +162,11 @@ export default function ContactsScreen() {
   // Guardar cambios del adulto mayor
   const handleSaveElderlyData = async () => {
     if (!elderly?.id) return;
+
+    if (!validateBirthdate(editedElderly.birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -275,6 +338,62 @@ export default function ContactsScreen() {
     setNewContact({ name: '', relationship: '', phone: '' });
   };
 
+  const handleCreateElderly = async () => {
+    const { name, birthdate, phone, address, medicalInfo } = newElderlyData;
+
+    if (!name || !birthdate || !phone || !address || !medicalInfo) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
+      return;
+    }
+
+    if (!validateBirthdate(birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Log para debug
+      console.log('Creando adulto mayor:', { name, phone, address, birthdate, medicalInfo });
+      
+      // Crear el adulto mayor usando el endpoint correcto
+      const createdElderly = await apiClient.createElderly({
+        name,
+        phone,
+        address,
+        birthdate,
+        medicalInfo,
+      });
+
+      console.log('Adulto mayor creado:', createdElderly);
+
+      // Crear la relación de cuidado entre el caregiver actual y el elderly
+      if (createdElderly.id) {
+        await apiClient.createCareRelationship(createdElderly.id, 'Familiar');
+      }
+
+      // Recargar la información del elderly
+      await refreshElderly();
+      
+      setShowCreateElderlyModal(false);
+      setNewElderlyData({
+        name: '',
+        birthdate: '',
+        phone: '',
+        address: '',
+        medicalInfo: ''
+      });
+      
+      Alert.alert('Éxito', 'Adulto mayor creado correctamente');
+    } catch (err: any) {
+      console.error('Error creating elderly:', err);
+      Alert.alert('Error', err?.message || 'No se pudo crear el adulto mayor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -322,18 +441,20 @@ export default function ContactsScreen() {
             <View style={styles.infoCard}>
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.sectionTitle}>Información de la Persona Mayor</Text>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => {
-                    if (isEditing) {
-                      handleCancelEdit();
-                    } else {
-                      setIsEditing(true);
-                    }
-                  }}
-                >
-                  <Pencil size={20} color={BRAND} />
-                </TouchableOpacity>
+                {elderly && (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => {
+                      if (isEditing) {
+                        handleCancelEdit();
+                      } else {
+                        setIsEditing(true);
+                      }
+                    }}
+                  >
+                    <Pencil size={20} color={BRAND} />
+                  </TouchableOpacity>
+                )}
               </View>
 
               {elderly ? (
@@ -358,8 +479,13 @@ export default function ContactsScreen() {
                       <TextInput
                         style={styles.input}
                         value={editedElderly.birthdate}
-                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, birthdate: text }))}
+                        onChangeText={(text) => {
+                          const formatted = formatBirthdate(text);
+                          setEditedElderly((p) => ({ ...p, birthdate: formatted }));
+                        }}
                         placeholder="DD/MM/AAAA"
+                        keyboardType="numeric"
+                        maxLength={10}
                       />
                     ) : (
                       <Text style={styles.value}>{elderly.birthdate || 'No disponible'}</Text>
@@ -427,10 +553,16 @@ export default function ContactsScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <User size={48} color="#999" />
-                  <Text style={styles.emptyText}>No hay información disponible</Text>
+                  <Text style={styles.emptyText}>No hay información del adulto mayor</Text>
                   <Text style={styles.emptySubtext}>
-                    Aún no se ha cargado la información de la persona mayor
+                    Crea el perfil de la persona mayor que acompañarás
                   </Text>
+                  <TouchableOpacity 
+                    style={styles.addButton} 
+                    onPress={() => setShowCreateElderlyModal(true)}
+                  >
+                    <Text style={styles.addButtonText}>Crear Adulto Mayor</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -445,7 +577,15 @@ export default function ContactsScreen() {
                 Contactos de Confianza
               </Text>
 
-              {trustedContacts.length === 0 ? (
+              {!elderly ? (
+                <View style={styles.emptyState}>
+                  <User size={48} color="#999" />
+                  <Text style={styles.emptyText}>Primero debes crear un adulto mayor</Text>
+                  <Text style={styles.emptySubtext}>
+                    Ve a la pestaña "Persona Mayor" para crear el perfil
+                  </Text>
+                </View>
+              ) : trustedContacts.length === 0 ? (
                 <View style={styles.emptyState}>
                   <User size={48} color="#999" />
                   <Text style={styles.emptyText}>No hay contactos de confianza</Text>
@@ -485,13 +625,96 @@ export default function ContactsScreen() {
                 />
               )}
 
-              <TouchableOpacity style={styles.addButton} onPress={() => setShowContactModal(true)}>
-                <Text style={styles.addButtonText}>Agregar nuevo contacto de confianza</Text>
-              </TouchableOpacity>
+              {elderly && (
+                <TouchableOpacity style={styles.addButton} onPress={() => setShowContactModal(true)}>
+                  <Text style={styles.addButtonText}>Agregar nuevo contacto de confianza</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
       )}
+
+      {/* Modal Crear Adulto Mayor */}
+      <Modal visible={showCreateElderlyModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreateElderlyModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Crear Adulto Mayor</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowCreateElderlyModal(false)}>
+              <X size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Nombre Completo *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.name}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, name: text }))}
+                placeholder="Nombre completo"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Teléfono *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.phone}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, phone: text }))}
+                placeholder="Número de teléfono"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Fecha de Nacimiento *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.birthdate}
+                onChangeText={(text) => {
+                  const formatted = formatBirthdate(text);
+                  setNewElderlyData((prev) => ({ ...prev, birthdate: formatted }));
+                }}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Dirección *</Text>
+              <TextInput
+                style={[styles.modalInput, styles.multilineInput]}
+                value={newElderlyData.address}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, address: text }))}
+                placeholder="Dirección completa"
+                multiline
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Información Médica *</Text>
+              <TextInput
+                style={[styles.modalInput, styles.multilineInput]}
+                value={newElderlyData.medicalInfo}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, medicalInfo: text }))}
+                placeholder="Condiciones médicas, medicamentos, alergias"
+                multiline
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalSaveButton}
+              onPress={handleCreateElderly}
+            >
+              <Text style={styles.modalSaveButtonText}>Crear Adulto Mayor</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* Modal Agregar/Editar contacto */}
       <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>

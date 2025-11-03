@@ -155,7 +155,9 @@ class ApiClient {
     }
 
     async register(data: RegisterRequest): Promise<LoginResponse> {
+        console.log('API Client - enviando a backend:', JSON.stringify(data, null, 2));
         const response = await this.client.post<LoginResponse>('/auth/register', data);
+        console.log('API Client - respuesta del backend:', JSON.stringify(response.data, null, 2));
         return response.data;
     }
 
@@ -177,6 +179,26 @@ class ApiClient {
 
     async updateUser(userId: number, data: Partial<UserDTO>): Promise<UserDTO> {
         const response = await this.client.put<UserDTO>(`/user/${userId}`, data);
+        return response.data;
+    }
+
+    async createElderly(data: {
+        name: string;
+        phone: string;
+        address: string;
+        birthdate: string;
+        medicalInfo: string;
+    }): Promise<UserDTO> {
+        const response = await this.client.post<UserDTO>('/user/elderly', data);
+        return response.data;
+    }
+
+    // Care Relationship endpoints
+    async createCareRelationship(elderlyId: number, relationship?: string): Promise<any> {
+        const response = await this.client.post('/care-relationships', {
+            elderlyId,
+            relationship: relationship || 'Cuidador'
+        });
         return response.data;
     }
 

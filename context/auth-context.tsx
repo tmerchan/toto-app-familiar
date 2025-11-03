@@ -65,12 +65,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const saveAuthData = async (authResponse: LoginResponse) => {
         const { accessToken, refreshToken, user: userData } = authResponse;
 
-        await AsyncStorage.multiSet([
-            [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-            [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+        const storageItems: Array<[string, string]> = [
             [STORAGE_KEYS.USER, JSON.stringify(userData)],
-        ]);
+        ];
 
+        // Solo guardar tokens si no son null (para casos de CAREGIVER)
+        if (accessToken) {
+            storageItems.push([STORAGE_KEYS.ACCESS_TOKEN, accessToken]);
+        }
+        if (refreshToken) {
+            storageItems.push([STORAGE_KEYS.REFRESH_TOKEN, refreshToken]);
+        }
+
+        await AsyncStorage.multiSet(storageItems);
         setUser(userData);
     };
 
@@ -81,6 +88,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
             STORAGE_KEYS.USER,
         ]);
         setUser(null);
+    };
+
+    const checkTermsStatus = async (): Promise<boolean> => {
+        try {
+            const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
+            return !rawTerms || !JSON.parse(rawTerms);
+        } catch {
+            return true; // Si hay error, asumir que necesita aceptar términos
+        }
     };
 
     const login = async (credentials: LoginRequest) => {

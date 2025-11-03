@@ -5,8 +5,8 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
     name: string;
-    email: string;
-    password: string;
+    email: string | null;
+    password: string | null;
     phone?: string;
     role: 'ELDERLY' | 'CAREGIVER';
     birthdate?: string;
@@ -21,7 +21,7 @@ export interface RefreshTokenRequest {
 export interface UserDTO {
     id: number;
     name: string;
-    email: string;
+    email: string | null;
     phone?: string;
     role: 'ELDERLY' | 'CAREGIVER';
     address?: string;
@@ -32,8 +32,8 @@ export interface UserDTO {
 }
 
 export interface LoginResponse {
-    accessToken: string;
-    refreshToken: string;
+    accessToken: string | null;
+    refreshToken: string | null;
     tokenType: string;
     user: UserDTO;
 }

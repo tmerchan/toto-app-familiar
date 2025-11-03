@@ -21,6 +21,59 @@ export default function UserProfileScreen() {
     photoUri: profile.photoUri ?? null,
   });
 
+  const formatBirthdate = (text: string) => {
+    // Eliminar todo lo que no sea número
+    const numbers = text.replace(/[^\d]/g, '');
+    
+    // Limitar a 8 dígitos
+    const limited = numbers.slice(0, 8);
+    
+    // Aplicar formato DD/MM/AAAA
+    if (limited.length <= 2) {
+      return limited;
+    } else if (limited.length <= 4) {
+      return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+    } else {
+      return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+    }
+  };
+
+  const handleBirthdateChange = (text: string) => {
+    const formatted = formatBirthdate(text);
+    setEditedData({ ...editedData, birthdate: formatted });
+  };
+
+  const validateBirthdate = (dateString: string): boolean => {
+    // Verificar formato DD/MM/AAAA
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateString.match(regex);
+    
+    if (!match) return false;
+    
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    
+    // Verificar rangos básicos
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    
+    // Verificar año razonable (mayor de 18 años y menor de 120 años)
+    const currentYear = new Date().getFullYear();
+    if (year < currentYear - 120 || year > currentYear - 18) return false;
+    
+    // Verificar días por mes
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    // Año bisiesto
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (isLeapYear) daysInMonth[1] = 29;
+    
+    if (day > daysInMonth[month - 1]) return false;
+    
+    return true;
+  };
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -36,6 +89,11 @@ export default function UserProfileScreen() {
   };
 
   const handleSave = async () => {
+    if (!validateBirthdate(editedData.birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA y verifica que seas mayor de 18 años.');
+      return;
+    }
+
     try {
       setLoading(true);
       await updateProfile(editedData);
@@ -77,8 +135,16 @@ export default function UserProfileScreen() {
         <TextInput
           style={styles.fieldInput}
           value={String(editedData[field] ?? '')}
-          onChangeText={(text) => setEditedData({ ...editedData, [field]: text })}
+          onChangeText={(text) => {
+            if (field === 'birthdate') {
+              handleBirthdateChange(text);
+            } else {
+              setEditedData({ ...editedData, [field]: text });
+            }
+          }}
           placeholder={label}
+          keyboardType={field === 'birthdate' ? 'numeric' : 'default'}
+          maxLength={field === 'birthdate' ? 10 : undefined}
         />
       ) : (
         <Text style={styles.fieldValue}>{String(editedData[field] ?? '')}</Text>

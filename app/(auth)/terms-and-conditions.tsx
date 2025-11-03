@@ -41,7 +41,74 @@ export default function AcceptTermsAndConditionsScreen() {
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
-                    {/* Mismo contenido que el original */}
+                    <Text style={styles.lastUpdated}>Última actualización: 30/09/2025</Text>
+
+                    <Text style={styles.mainTitle}>Términos y Condiciones de Uso (TyC)</Text>
+
+                    <Text style={styles.sectionTitle}>Objeto del servicio</Text>
+                    <Text style={styles.paragraph}>
+                        Toto es una aplicación de acompañamiento gerontológico destinada a personas mayores y sus familiares/cuidadores.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Brinda funcionalidades de recordatorios, asistencia por voz, entretenimiento, comunicación y detección de emergencias (caídas y pedidos de auxilio).
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        No constituye un servicio médico ni reemplaza la atención profesional de salud.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Condiciones de uso</Text>
+                    <Text style={styles.paragraph}>
+                        El usuario se compromete a usar la aplicación únicamente con fines personales y familiares.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Queda prohibido el uso fraudulento, ilegal o contrario a la buena fe.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Los familiares/cuidadores deben garantizar que cuentan con el consentimiento informado de la persona mayor registrada.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Limitaciones y descargo de responsabilidad</Text>
+                    <Text style={styles.paragraph}>
+                        Toto no garantiza la detección del 100% de caídas o emergencias, ya que depende de factores técnicos (micrófono, ruido ambiental, conectividad, etc.).
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        La aplicación no asume responsabilidad por daños derivados de fallos técnicos, errores de reconocimiento de voz o interrupciones de servicio.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Toto no reemplaza la asistencia médica de emergencia ni servicios profesionales de salud.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Registro y autenticación</Text>
+                    <Text style={styles.paragraph}>
+                        El registro de usuarios se realiza mediante Firebase Authentication, que gestiona las credenciales y contraseñas de manera segura.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Los cuidadores deben registrar información veraz y mantenerla actualizada.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Propiedad intelectual</Text>
+                    <Text style={styles.paragraph}>
+                        Los desarrolladores conservan los derechos sobre el software, diseño, marcas y contenidos de Toto.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        El usuario obtiene una licencia limitada, no exclusiva y revocable para usar la aplicación.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Modificaciones</Text>
+                    <Text style={styles.paragraph}>
+                        Toto se reserva el derecho de modificar funcionalidades, TyC y condiciones del servicio, notificando a los usuarios.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Jurisdicción</Text>
+                    <Text style={styles.paragraph}>
+                        Este acuerdo se rige por las leyes de Argentina. Cualquier disputa será resuelta en los tribunales competentes de la Ciudad Autónoma de Buenos Aires.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>Contacto</Text>
+                    <Text style={styles.paragraph}>
+                        Para consultas o reclamos sobre estos TyC, puedes contactarnos a: <Text style={styles.bold}>soporte@toto-app.com</Text>
+                    </Text>
+
                     <TouchableOpacity
                         style={[styles.acceptButton, accepted && styles.acceptButtonDisabled]}
                         onPress={handleAccept}
