@@ -14,6 +14,7 @@ import { Plus, Pill, Calendar as CalendarIcon, Clock, Pencil, Trash2, Save, X, B
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '../context/auth-context';
+import { useElderly } from '../context/elderly-context';
 import { apiClient } from '../api/client';
 import { ReminderDTO } from '../api/types';
 
@@ -155,6 +156,7 @@ const toDTO = (reminder: Partial<Reminder>, elderlyId: number): Omit<ReminderDTO
 
 export default function RemindersScreen() {
   const { user } = useAuth();
+  const { elderly } = useElderly();
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -178,11 +180,11 @@ export default function RemindersScreen() {
 
   // Load reminders from API
   const loadReminders = async () => {
-    if (!user?.id) return;
+    if (!elderly?.id) return;
 
     try {
       setLoading(true);
-      const data = await apiClient.getRemindersByElderlyId(user.id, false);
+      const data = await apiClient.getRemindersByElderlyId(elderly.id, false);
       setReminders(data.map(fromDTO));
     } catch (error: any) {
       console.error('Error loading reminders:', error);
@@ -192,10 +194,10 @@ export default function RemindersScreen() {
     }
   };
 
-  // Load reminders when component mounts or user changes
+  // Load reminders when component mounts or elderly changes
   useEffect(() => {
     loadReminders();
-  }, [user]);
+  }, [elderly?.id]);
 
   const setField = (key: keyof Reminder, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -306,12 +308,20 @@ export default function RemindersScreen() {
       setLoading(true);
       if (editingReminder) {
         // Update existing reminder
-        const dto = toDTO(reminderData, user.id);
+        if (!elderly?.id) {
+          Alert.alert('Error', 'No se pudo identificar la persona mayor');
+          return;
+        }
+        const dto = toDTO(reminderData, elderly.id);
         await apiClient.updateReminder(editingReminder.id, { ...dto, id: editingReminder.id });
         Alert.alert('Éxito', 'Recordatorio actualizado correctamente');
       } else {
         // Create new reminder
-        const dto = toDTO(reminderData, user.id);
+        if (!elderly?.id) {
+          Alert.alert('Error', 'No se pudo identificar la persona mayor');
+          return;
+        }
+        const dto = toDTO(reminderData, elderly.id);
         await apiClient.createReminder(dto);
         Alert.alert('Éxito', 'Recordatorio creado correctamente');
       }

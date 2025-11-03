@@ -18,9 +18,8 @@ import type {
 // - Physical device: use your computer's IP (e.g., http://192.168.1.100:8080/api)
 // - Android Emulator: http://10.0.2.2:8080/api
 // - iOS Simulator: http://localhost:8080/api
-const API_BASE_URL = __DEV__
-    ? 'http://10.0.2.2:8080/api' // Change this to your backend URL
-    : 'https://your-production-api.com/api';
+// Production: https://toto-backend-production.up.railway.app/api
+const API_BASE_URL = 'https://toto-backend-production.up.railway.app/api';
 
 const STORAGE_KEYS = {
     ACCESS_TOKEN: '@toto/access_token',
@@ -167,6 +166,17 @@ class ApiClient {
 
     async getCurrentUser(): Promise<UserDTO> {
         const response = await this.client.get<UserDTO>('/auth/me');
+        return response.data;
+    }
+    
+    // User endpoints
+    async getElderlyUnderCare(): Promise<UserDTO[]> {
+        const response = await this.client.get<UserDTO[]>('/user/elderly-under-care');
+        return response.data;
+    }
+
+    async updateUser(userId: number, data: Partial<UserDTO>): Promise<UserDTO> {
+        const response = await this.client.put<UserDTO>(`/user/${userId}`, data);
         return response.data;
     }
 

@@ -13,27 +13,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { User, Phone, Pencil, X } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/auth-context';
+import { useElderly } from '../../context/elderly-context';
 import { apiClient } from '../../api/client';
 import type { ContactDTO } from '../../api/types';
 
 const BRAND = '#6B8E23';
 const MAX_WIDTH = 420;
-
-const STORAGE = {
-  CONTACTS: '@trustedContacts',
-  ELDERLY: '@elderlyData',
-};
-
-interface ElderlyPerson {
-  name: string;
-  birthDate: string;
-  phone: string;
-  address: string;
-  medicalInfo: string;
-  emergencyContact: string;
-}
 
 interface TrustedContact {
   id: number;
@@ -51,6 +37,7 @@ const isPhoneValid = (s: string) => {
 
 export default function ContactsScreen() {
   const { user } = useAuth();
+  const { elderly, refreshElderly, isLoading: elderlyLoading, error: elderlyError } = useElderly();
   const [activeTab, setActiveTab] = useState<'elderly' | 'contacts'>('elderly');
   const [isEditing, setIsEditing] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -59,17 +46,14 @@ export default function ContactsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const initialElderlyData: ElderlyPerson = {
-    name: 'Juan Pablo Yoo',
-    birthDate: '15/03/1945',
-    phone: '+1 234 567 8900',
-    address: 'P. Sherman, 42 Wallaby Way, Sídney',
-    medicalInfo: 'Hipertensión arterial, toma Losartán 50mg diario. Alérgico a la penicilina.',
-    emergencyContact: 'Tamara Merchan - Hija',
-  };
-
-  const [elderlyData, setElderlyData] = useState<ElderlyPerson>(initialElderlyData);
-  const [originalElderlyData, setOriginalElderlyData] = useState<ElderlyPerson>(initialElderlyData);
+  // Estado temporal para edición del adulto mayor
+  const [editedElderly, setEditedElderly] = useState({
+    name: '',
+    birthdate: '',
+    phone: '',
+    address: '',
+    medicalInfo: ''
+  });
 
   const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
 
@@ -82,12 +66,12 @@ export default function ContactsScreen() {
 
   // Cargar contactos desde el backend
   const loadContacts = async () => {
-    if (!user) return;
+    if (!elderly?.id) return;
 
     try {
       setLoading(true);
       setError(null);
-      const contacts = await apiClient.getContactsByElderlyId(user.id);
+      const contacts = await apiClient.getContactsByElderlyId(elderly.id);
       setTrustedContacts(contacts.map(c => ({
         id: c.id!,
         name: c.name,
@@ -102,41 +86,43 @@ export default function ContactsScreen() {
     }
   };
 
-  // Cargar persistidos
+  // Cargar contactos cuando el elderly esté disponible
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        // Cargar persona mayor desde AsyncStorage
-        const eRaw = await AsyncStorage.getItem(STORAGE.ELDERLY);
-        if (eRaw) {
-          const parsed = JSON.parse(eRaw) as ElderlyPerson;
-          setElderlyData(parsed);
-          setOriginalElderlyData(parsed);
-        }
+    if (elderly?.id) {
+      loadContacts();
+      // Inicializar datos editables del elderly
+      setEditedElderly({
+        name: elderly.name || '',
+        birthdate: elderly.birthdate || '',
+        phone: elderly.phone || '',
+        address: elderly.address || '',
+        medicalInfo: elderly.medicalInfo || ''
+      });
+    }
+  }, [elderly?.id]);
 
-        // Cargar contactos desde el backend
-        await loadContacts();
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user]);
-
-  // Persistir persona mayor al guardar (sigue usando AsyncStorage para datos locales)
-  const persistElderly = async (next: ElderlyPerson) => {
-    setElderlyData(next);
-    setOriginalElderlyData(next);
-    try {
-      await AsyncStorage.setItem(STORAGE.ELDERLY, JSON.stringify(next));
-    } catch { }
-  };
-
-  // Persona mayor
+  // Guardar cambios del adulto mayor
   const handleSaveElderlyData = async () => {
-    await persistElderly({ ...elderlyData });
-    setIsEditing(false);
-    Alert.alert('Éxito', 'Información guardada correctamente');
+    if (!elderly?.id) return;
+
+    try {
+      setLoading(true);
+      await apiClient.updateUser(elderly.id, {
+        name: editedElderly.name,
+        birthdate: editedElderly.birthdate,
+        phone: editedElderly.phone,
+        address: editedElderly.address,
+        medicalInfo: editedElderly.medicalInfo
+      });
+      await refreshElderly(); // Recargar datos del elderly
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Información actualizada correctamente');
+    } catch (err: any) {
+      console.error('Error updating elderly:', err);
+      Alert.alert('Error', err?.message || 'No se pudo actualizar la información');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -146,7 +132,16 @@ export default function ContactsScreen() {
         text: 'Cancelar',
         style: 'destructive',
         onPress: () => {
-          setElderlyData({ ...originalElderlyData });
+          // Restaurar valores originales
+          if (elderly) {
+            setEditedElderly({
+              name: elderly.name || '',
+              birthdate: elderly.birthdate || '',
+              phone: elderly.phone || '',
+              address: elderly.address || '',
+              medicalInfo: elderly.medicalInfo || ''
+            });
+          }
           setIsEditing(false);
         },
       },
@@ -155,14 +150,14 @@ export default function ContactsScreen() {
 
   // Contactos - Ahora con API
   const handleAddContact = async () => {
-    if (!user) return;
+    if (!elderly?.id) return;
 
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
 
-    if (!name || !phone) {
-      Alert.alert('Error', 'El nombre y teléfono son obligatorios');
+    if (!name || !phone || !relationship) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
     if (!isPhoneValid(phone)) {
@@ -173,7 +168,7 @@ export default function ContactsScreen() {
     try {
       setLoading(true);
       const contactDTO: ContactDTO = {
-        elderlyId: user.id,
+        elderlyId: elderly.id,
         name,
         relationship,
         phone,
@@ -205,14 +200,14 @@ export default function ContactsScreen() {
   };
 
   const handleUpdateContact = async () => {
-    if (!editingContact || !user) return;
+    if (!editingContact || !elderly?.id) return;
 
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
 
-    if (!name || !phone) {
-      Alert.alert('Error', 'El nombre y teléfono son obligatorios');
+    if (!name || !phone || !relationship) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
     if (!isPhoneValid(phone)) {
@@ -223,7 +218,7 @@ export default function ContactsScreen() {
     try {
       setLoading(true);
       const contactDTO: ContactDTO = {
-        elderlyId: user.id,
+        elderlyId: elderly.id,
         name,
         relationship,
         phone,
@@ -330,112 +325,112 @@ export default function ContactsScreen() {
                 <TouchableOpacity
                   style={styles.iconBtn}
                   onPress={() => {
-                    if (!isEditing) setOriginalElderlyData({ ...elderlyData });
-                    setIsEditing(!isEditing);
+                    if (isEditing) {
+                      handleCancelEdit();
+                    } else {
+                      setIsEditing(true);
+                    }
                   }}
                 >
                   <Pencil size={20} color={BRAND} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Nombre:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.name}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, name: text }))}
-                    placeholder="Nombre completo"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.name}</Text>
-                )}
-              </View>
+              {elderly ? (
+                <>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Nombre:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.name}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, name: text }))}
+                        placeholder="Nombre completo"
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.name || 'No disponible'}</Text>
+                    )}
+                  </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Fecha de Nacimiento:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.birthDate}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, birthDate: text }))}
-                    placeholder="DD/MM/AAAA"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.birthDate}</Text>
-                )}
-              </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Fecha de Nacimiento:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.birthdate}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, birthdate: text }))}
+                        placeholder="DD/MM/AAAA"
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.birthdate || 'No disponible'}</Text>
+                    )}
+                  </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Teléfono:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.phone}
-                    onChangeText={(text) =>
-                      setElderlyData((p) => ({ ...p, phone: sanitizePhone(text) }))
-                    }
-                    placeholder="Número de teléfono"
-                    keyboardType="phone-pad"
-                    inputMode="numeric"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.phone}</Text>
-                )}
-              </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Teléfono:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.phone}
+                        onChangeText={(text) =>
+                          setEditedElderly((p) => ({ ...p, phone: sanitizePhone(text) }))
+                        }
+                        placeholder="Número de teléfono"
+                        keyboardType="phone-pad"
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.phone || 'No disponible'}</Text>
+                    )}
+                  </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Dirección:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    value={elderlyData.address}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, address: text }))}
-                    placeholder="Dirección completa"
-                    multiline
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.address}</Text>
-                )}
-              </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Dirección:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={[styles.input, styles.multilineInput]}
+                        value={editedElderly.address}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, address: text }))}
+                        placeholder="Dirección completa"
+                        multiline
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.address || 'No disponible'}</Text>
+                    )}
+                  </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Información Médica:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    value={elderlyData.medicalInfo}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, medicalInfo: text }))}
-                    placeholder="Condiciones médicas, medicamentos, alergias"
-                    multiline
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.medicalInfo}</Text>
-                )}
-              </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Información Médica:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={[styles.input, styles.multilineInput]}
+                        value={editedElderly.medicalInfo}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, medicalInfo: text }))}
+                        placeholder="Condiciones médicas, medicamentos, alergias"
+                        multiline
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.medicalInfo || 'No disponible'}</Text>
+                    )}
+                  </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Contacto de Emergencia:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.emergencyContact}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, emergencyContact: text }))}
-                    placeholder="Nombre y relación"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.emergencyContact}</Text>
-                )}
-              </View>
-
-              {isEditing && (
-                <View style={styles.buttonRowCentered}>
-                  <TouchableOpacity style={styles.btnSecondary} onPress={handleCancelEdit}>
-                    <Text style={styles.btnSecondaryText}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveElderlyData}>
-                    <Text style={styles.btnPrimaryText}>Guardar</Text>
-                  </TouchableOpacity>
+                  {isEditing && (
+                    <View style={styles.buttonRowCentered}>
+                      <TouchableOpacity style={styles.btnSecondary} onPress={handleCancelEdit}>
+                        <Text style={styles.btnSecondaryText}>Cancelar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveElderlyData}>
+                        <Text style={styles.btnPrimaryText}>Guardar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <User size={48} color="#999" />
+                  <Text style={styles.emptyText}>No hay información disponible</Text>
+                  <Text style={styles.emptySubtext}>
+                    Aún no se ha cargado la información de la persona mayor
+                  </Text>
                 </View>
               )}
             </View>
@@ -520,7 +515,7 @@ export default function ContactsScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Relación</Text>
+              <Text style={styles.inputLabel}>Relación *</Text>
               <TouchableOpacity
                 style={styles.modalInput}
                 onPress={() => setShowRelationPicker(true)}
@@ -542,7 +537,6 @@ export default function ContactsScreen() {
                 }
                 placeholder="Número de teléfono"
                 keyboardType="phone-pad"
-                inputMode="numeric"
               />
             </View>
 

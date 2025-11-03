@@ -10,6 +10,8 @@ import { Phone, Bell, TriangleAlert as AlertTriangle, Check, User } from 'lucide
 import { useState } from 'react';
 import { router } from 'expo-router';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { useAuth } from '../../context/auth-context';
+import { useElderly } from '../../context/elderly-context';
 
 function SoftBackground() {
   return (
@@ -40,6 +42,8 @@ function SoftBackground() {
 }
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { elderly } = useElderly();
   const [hasFallAlert, setHasFallAlert] = useState(false);
 
   const getCurrentDate = () => {
@@ -58,6 +62,10 @@ export default function HomeScreen() {
   const navigateToReminders = () => router.push('/reminders');
   const navigateToHistory = () => router.push('/history');
 
+  // Extract first name from user.name
+  const firstName = user?.name.split(' ')[0] || 'Usuario';
+  const elderlyName = elderly?.name || 'la persona mayor';
+
   return (
     <View style={styles.container}>
       <SoftBackground />
@@ -69,7 +77,7 @@ export default function HomeScreen() {
           <View style={styles.profileSection}>
             <Text style={styles.dateText}>{getCurrentDate()}</Text>
             <View style={styles.greetingContainer}>
-              <Text style={styles.greetingText}>Hola, Tamara</Text>
+              <Text style={styles.greetingText}>Hola, {firstName}</Text>
               <Text style={styles.waveEmoji}>👋</Text>
             </View>
           </View>
@@ -86,7 +94,7 @@ export default function HomeScreen() {
             {hasFallAlert ? (
               <>
                 <User size={16} color="white" />
-                <Text style={styles.statusText}>Juan Pablo se ha caído</Text>
+                <Text style={styles.statusText}>{elderlyName} se ha caído</Text>
               </>
             ) : (
               <>

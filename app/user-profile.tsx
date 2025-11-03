@@ -1,5 +1,5 @@
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, ActivityIndicator
 } from 'react-native';
 import { ChevronLeft, User, Mail, Phone, MapPin, Calendar, Pencil as Edit2 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -9,6 +9,7 @@ import { useProfile } from '../context/profile-context';
 
 export default function UserProfileScreen() {
   const { profile, updateProfile } = useProfile();
+  const [loading, setLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
@@ -34,10 +35,18 @@ export default function UserProfileScreen() {
     }
   };
 
-  const handleSave = () => {
-    updateProfile(editedData);
-    setIsEditing(false);
-    Alert.alert('Éxito', 'Perfil actualizado correctamente');
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      await updateProfile(editedData);
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Perfil actualizado correctamente');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', error?.message || 'No se pudo actualizar el perfil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {

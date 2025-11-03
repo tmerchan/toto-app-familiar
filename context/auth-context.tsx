@@ -88,6 +88,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setIsLoading(true);
             setError(null);
 
+            // Validate that email and password are not empty
+            if (!credentials.email || !credentials.email.trim()) {
+                throw {
+                    message: 'El correo electrónico es requerido',
+                    status: 400,
+                } as ApiError;
+            }
+            
+            if (!credentials.password || !credentials.password.trim()) {
+                throw {
+                    message: 'La contraseña es requerida',
+                    status: 400,
+                } as ApiError;
+            }
+
             const response = await apiClient.login(credentials);
             await saveAuthData(response);
         } catch (err: any) {

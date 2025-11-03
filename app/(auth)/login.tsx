@@ -51,18 +51,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (!acceptedTerms) {
-        router.replace('/(auth)/terms-and-conditions');
-      } else {
-        router.replace('/(tabs)');
-      }
-    }, 1500);
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -137,18 +125,6 @@ export default function LoginScreen() {
               {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Text>
             {!isLoading && <ArrowRight size={20} color="white" />}
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o continúa con</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google */}
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading}>
-            <Text style={styles.googleButtonText}>Google</Text>
           </TouchableOpacity>
 
           {/* Register */}
@@ -241,22 +217,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   loginButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
-
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { marginHorizontal: 16, fontSize: 14, color: '#6B7280' },
-
-  googleButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
-  },
-  googleButtonText: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
 
   registerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6B7280' },
