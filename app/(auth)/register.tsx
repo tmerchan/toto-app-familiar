@@ -421,6 +421,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   formContainer: {
+    width: '90%',
+    maxWidth: 500,
+    alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 24,

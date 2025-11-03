@@ -173,6 +173,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
 
   formContainer: {
+    width: '90%',
+    maxWidth: 500,
+    alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 24,
