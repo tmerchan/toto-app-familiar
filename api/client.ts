@@ -191,6 +191,11 @@ class ApiClient {
         return response.data;
     }
 
+    async getElderlyAccessToken(elderlyId: number): Promise<{ token: string }> {
+        const response = await this.client.get<{ token: string }>(`/user/${elderlyId}/access-token`);
+        return response.data;
+    }
+
     // Care Relationship endpoints
     async createCareRelationship(elderlyId: number, relationship?: string): Promise<any> {
         const response = await this.client.post('/care-relationships', {

@@ -104,6 +104,7 @@ export default function ContactsScreen() {
   });
 
   const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
+  const [elderlyToken, setElderlyToken] = useState<string | null>(null);
 
   const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
   const [showRelationPicker, setShowRelationPicker] = useState(false);
@@ -144,10 +145,24 @@ export default function ContactsScreen() {
     }
   };
 
+  // Cargar token del adulto mayor
+  const loadElderlyToken = async () => {
+    if (!elderly?.id) return;
+
+    try {
+      const response = await apiClient.getElderlyAccessToken(elderly.id);
+      setElderlyToken(response.token);
+    } catch (err: any) {
+      console.error('Error loading token:', err);
+      // No mostramos error al usuario, simplemente no se muestra el token
+    }
+  };
+
   // Cargar contactos cuando el elderly esté disponible
   useEffect(() => {
     if (elderly?.id) {
       loadContacts();
+      loadElderlyToken();
       // Inicializar datos editables del elderly
       setEditedElderly({
         name: elderly.name || '',
@@ -533,6 +548,14 @@ export default function ContactsScreen() {
                       <Text style={styles.value}>{elderly.medicalInfo || 'No disponible'}</Text>
                     )}
                   </View>
+
+                  {/* Token del adulto mayor */}
+                  {elderlyToken && (
+                    <View style={styles.tokenBox}>
+                      <Text style={styles.tokenLabel}>Token:</Text>
+                      <Text style={styles.tokenValue}>{elderlyToken}</Text>
+                    </View>
+                  )}
 
                   {isEditing && (
                     <View style={styles.buttonRowCentered}>
@@ -1025,4 +1048,27 @@ const styles = StyleSheet.create({
   relationOptionText: { fontSize: 16, color: '#111' },
   relationCancel: { marginTop: 8, paddingVertical: 12, alignItems: 'center' },
   relationCancelText: { fontSize: 16, color: '#6B7280' },
+
+  // Token box
+  tokenBox: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  tokenLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  tokenValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: BRAND,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
 });
