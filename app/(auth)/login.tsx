@@ -146,7 +146,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  scrollContent: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    width: '100%',
+  },
   header: { alignItems: 'center', marginBottom: 40 },
 
   logoContainer: {
@@ -173,12 +179,13 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
 
   formContainer: {
-    width: '90%',
-    maxWidth: 500,
+    width: '95%',
+    maxWidth: 640,
     alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

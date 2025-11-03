@@ -266,7 +266,7 @@ export default function RegisterScreen() {
               <Calendar size={20} color="#6B7280" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Fecha de nacimiento (DD/MM/AAAA)"
+                placeholder="Fecha de nacimiento"
                 value={formData.birthdate}
                 onChangeText={handleBirthdateChange}
                 keyboardType="numeric"
@@ -382,7 +382,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    width: '100%',
   },
   header: {
     alignItems: 'center',
@@ -421,12 +423,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   formContainer: {
-    width: '90%',
-    maxWidth: 500,
+    width: '97%',
+    maxWidth: 680,
     alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
