@@ -9,9 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Linking
+  Linking,
+  Clipboard,
 } from 'react-native';
-import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle, Copy } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { apiClient } from '../../api/client';
@@ -92,7 +93,7 @@ export default function ForgotPasswordScreen() {
       setEmailSent(true);
       Alert.alert(
         'Token Generado', 
-        `Token de recuperación: ${response.token}\n\nEn producción, este se enviaría por email.`,
+        `Token de recuperación: ${response.token}`,
         [{ text: 'OK' }]
       );
     } catch (error: any) {
@@ -110,6 +111,16 @@ export default function ForgotPasswordScreen() {
     setEmailSent(false);
     setResetToken('');
     handleSendReset();
+  };
+
+  const handleCopyToken = async () => {
+    try {
+      await Clipboard.setString(resetToken);
+      Alert.alert('¡Copiado!', 'El token se ha copiado al portapapeles');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      Alert.alert('Error', 'No se pudo copiar el token');
+    }
   };
 
   if (emailSent) {
@@ -132,9 +143,16 @@ export default function ForgotPasswordScreen() {
 
             <View style={styles.tokenContainer}>
               <Text style={styles.tokenLabel}>Token de recuperación:</Text>
-              <Text style={styles.tokenText}>{resetToken}</Text>
+              <TouchableOpacity 
+                style={styles.tokenTextContainer}
+                onPress={handleCopyToken}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.tokenText}>{resetToken}</Text>
+                <Copy size={20} color="#6B8E23" style={styles.copyIcon} />
+              </TouchableOpacity>
               <Text style={styles.tokenNote}>
-                ⚠️ Copia este token. En producción, se enviaría por email.
+                ✨ Toca el token para copiarlo al portapapeles
               </Text>
             </View>
 
@@ -534,20 +552,29 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
-  tokenText: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    color: '#6B8E23',
+  tokenTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#6B8E23',
     marginBottom: 8,
+    gap: 8,
+  },
+  tokenText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#6B8E23',
+  },
+  copyIcon: {
+    marginLeft: 8,
   },
   tokenNote: {
     fontSize: 12,
-    color: '#DC2626',
+    color: '#6B8E23',
     fontStyle: 'italic',
     textAlign: 'center',
   },

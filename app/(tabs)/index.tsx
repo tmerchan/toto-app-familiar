@@ -6,14 +6,17 @@ import {
   TouchableOpacity,
   StatusBar,
   Linking,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Phone, Bell, TriangleAlert as AlertTriangle, Check, User } from 'lucide-react-native';
-import { useState } from 'react';
-import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useAuth } from '../../context/auth-context';
 import { useElderly } from '../../context/elderly-context';
+import { apiClient } from '../../api/client';
 
 function SoftBackground() {
   return (
@@ -47,6 +50,97 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { elderly } = useElderly();
   const [hasFallAlert, setHasFallAlert] = useState(false);
+  const [fallEventId, setFallEventId] = useState<number | null>(null);
+  const [loadingFallStatus, setLoadingFallStatus] = useState(false);
+
+  // Check for unresolved fall events
+  useEffect(() => {
+    if (elderly?.id) {
+      checkForUnresolvedFalls();
+    }
+  }, [elderly]);
+
+  // Refresh fall status when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (elderly?.id) {
+        checkForUnresolvedFalls();
+      }
+    }, [elderly])
+  );
+
+  const checkForUnresolvedFalls = async () => {
+    if (!elderly?.id) return;
+
+    try {
+      setLoadingFallStatus(true);
+      // Get events from the last 24 hours
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setHours(startDate.getHours() - 24);
+
+      const startStr = startDate.toISOString();
+      const endStr = endDate.toISOString();
+
+      const events = await apiClient.getHistoryByUserId(elderly.id, startStr, endStr);
+      
+      // Look for FALL_DETECTED events that haven't been followed by FALL_RESOLVED
+      const fallEvents = events.filter(e => 
+        e.eventType === 'FALL_DETECTED' || e.eventType === 'FALL_RESOLVED'
+      ).sort((a, b) => {
+        // Sort by timestamp descending (most recent first)
+        const timeA = new Date(a.timestamp || 0).getTime();
+        const timeB = new Date(b.timestamp || 0).getTime();
+        return timeB - timeA;
+      });
+
+      // Check if the most recent fall event is FALL_DETECTED (unresolved)
+      if (fallEvents.length > 0 && fallEvents[0].eventType === 'FALL_DETECTED') {
+        setHasFallAlert(true);
+        setFallEventId(fallEvents[0].id || null);
+      } else {
+        setHasFallAlert(false);
+        setFallEventId(null);
+      }
+    } catch (error) {
+      console.error('Error checking for falls:', error);
+    } finally {
+      setLoadingFallStatus(false);
+    }
+  };
+
+  const handleFallAlertPress = () => {
+    if (!hasFallAlert) return;
+
+    Alert.alert(
+      'Confirmar Revisión',
+      `¿Ya revisaste la situación de ${elderlyName}? Esto marcará la alerta como resuelta.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sí, ya revisé', 
+          onPress: async () => {
+            try {
+              // Create a FALL_RESOLVED event
+              await apiClient.createHistoryEvent({
+                userId: elderly?.id!,
+                eventType: 'FALL_RESOLVED',
+                details: `El familiar ${user?.name || 'Usuario'} revisó y confirmó que la situación está bajo control.`
+              });
+              
+              setHasFallAlert(false);
+              setFallEventId(null);
+              
+              Alert.alert('Listo', 'La alerta ha sido marcada como resuelta.');
+            } catch (error) {
+              console.error('Error resolving fall:', error);
+              Alert.alert('Error', 'No se pudo marcar la alerta como resuelta.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const getCurrentDate = () => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -61,10 +155,58 @@ export default function HomeScreen() {
     return `${dayName}, ${day} de ${month}`;
   };
 
-  const navigateToReminders = () => router.push('/reminders');
-  const navigateToHistory = () => router.push('/history');
+  const navigateToReminders = () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder configurar recordatorios.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+    router.push('/reminders');
+  };
+
+  const navigateToHistory = () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder revisar el historial de alertas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+    router.push('/history');
+  };
 
   const openWhatsApp = async () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder comunicarte por WhatsApp.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+
     if (!elderly?.phone) {
       Alert.alert('Error', 'No hay número de teléfono disponible para el adulto mayor');
       return;
@@ -117,12 +259,15 @@ export default function HomeScreen() {
               styles.statusButton, 
               hasFallAlert ? styles.alertButton : styles.okButton
             ]}
-            onPress={() => setHasFallAlert(!hasFallAlert)}
+            onPress={handleFallAlertPress}
+            disabled={!hasFallAlert || loadingFallStatus}
           >
-            {hasFallAlert ? (
+            {loadingFallStatus ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : hasFallAlert ? (
               <>
-                <User size={16} color="white" />
-                <Text style={styles.statusText}>{elderlyName} se ha caído</Text>
+                <AlertTriangle size={16} color="white" />
+                <Text style={styles.statusText}>Puede que {elderlyName} se haya caído</Text>
               </>
             ) : (
               <>
