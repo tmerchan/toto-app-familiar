@@ -7,14 +7,15 @@ import {
   ActivityIndicator,
   Alert as RNAlert,
 } from 'react-native';
-import { ChevronLeft, TriangleAlert as AlertTriangle, CircleHelp as HelpCircle, Pill, Check, X } from 'lucide-react-native';
+import { ChevronLeft, TriangleAlert as AlertTriangle, Pill, Check, X } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '../context/auth-context';
+import { useElderly } from '../context/elderly-context';
 import { apiClient } from '../api/client';
 import { HistoryEventDTO } from '../api/types';
 
-type AlertType = 'fall' | 'help' | 'medication_taken' | 'medication_missed';
+type AlertType = 'fall' | 'medication_taken' | 'medication_missed';
 
 interface Alert {
   id: number;
@@ -26,8 +27,24 @@ interface Alert {
   elderName: string;
 }
 
+// Helper function to capitalize first letter
+const capitalizeFirst = (str: string): string => {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+// Helper to parse JSON details
+const parseDetails = (details: string | null | undefined): any => {
+  if (!details) return null;
+  try {
+    return JSON.parse(details);
+  } catch {
+    return null;
+  }
+};
+
 // Helper to convert HistoryEventDTO to local Alert format
-const fromDTO = (dto: HistoryEventDTO): Alert => {
+const fromDTO = async (dto: HistoryEventDTO): Promise<Alert> => {
   const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
   const dd = String(timestamp.getDate()).padStart(2, '0');
   const mm = String(timestamp.getMonth() + 1).padStart(2, '0');
@@ -35,29 +52,79 @@ const fromDTO = (dto: HistoryEventDTO): Alert => {
   const hh = String(timestamp.getHours()).padStart(2, '0');
   const min = String(timestamp.getMinutes()).padStart(2, '0');
 
-  // Map eventType to AlertType
-  let type: AlertType = 'help';
+  // Map eventType to AlertType and generate descriptive titles
+  let type: AlertType = 'fall';
   let title = dto.eventType;
+  let description = dto.details || '';
 
-  if (dto.eventType.toLowerCase().includes('fall') || dto.eventType.toLowerCase().includes('caída')) {
+  const eventTypeLower = dto.eventType.toLowerCase();
+  const detailsJson = parseDetails(dto.details);
+  
+  // Debug logging
+  console.log('Processing event:', {
+    eventType: dto.eventType,
+    details: dto.details,
+    parsedDetails: detailsJson
+  });
+  
+  // Try to fetch reminder title if we have reminderId but no title in details
+  let reminderTitle: string | null = null;
+  if (detailsJson?.reminderId && !detailsJson?.title) {
+    try {
+      const reminder = await apiClient.getReminderById(detailsJson.reminderId);
+      reminderTitle = reminder.title;
+      console.log('Fetched reminder title from API:', reminderTitle);
+    } catch (error) {
+      console.error('Error fetching reminder:', error);
+    }
+  }
+
+  if (eventTypeLower.includes('fall') || eventTypeLower.includes('caída') ||
+      eventTypeLower.includes('help') || eventTypeLower.includes('auxilio')) {
     type = 'fall';
-    title = 'Caída detectada';
-  } else if (dto.eventType.toLowerCase().includes('help') || dto.eventType.toLowerCase().includes('auxilio')) {
-    type = 'help';
-    title = 'Pedido de auxilio';
-  } else if (dto.eventType.toLowerCase().includes('medication_taken') || dto.eventType.toLowerCase().includes('tomada')) {
+    if (eventTypeLower.includes('resolved')) {
+      title = '✅ Caída resuelta';
+      description = dto.details || 'El adulto mayor reportó estar bien tras la detección';
+    } else {
+      title = '🚨 Caída detectada o pedido de auxilio';
+      description = dto.details || 'Se detectó una posible caída o pedido de ayuda';
+    }
+  } else if (eventTypeLower === 'medication_taken') {
     type = 'medication_taken';
-    title = 'Medicación tomada';
-  } else if (dto.eventType.toLowerCase().includes('medication_missed') || dto.eventType.toLowerCase().includes('no tomada')) {
+    const finalTitle = detailsJson?.title || reminderTitle || 'medicamento';
+    title = `💊 Medicamento tomado`;
+    description = capitalizeFirst(finalTitle);
+  } else if (eventTypeLower === 'medication_skipped') {
     type = 'medication_missed';
-    title = 'Medicación no tomada';
+    const finalTitle = detailsJson?.title || reminderTitle || 'medicamento';
+    title = `❌ Medicamento no tomado`;
+    description = capitalizeFirst(finalTitle);
+    if (detailsJson?.reason) {
+      description += ` - ${detailsJson.reason}`;
+    }
+  } else if (eventTypeLower === 'reminder_announced') {
+    type = 'medication_taken'; // Use this type for general reminders
+    const finalTitle = detailsJson?.title || reminderTitle || 'recordatorio';
+    const reminderType = detailsJson?.reminderType?.toLowerCase() || '';
+    
+    if (reminderType === 'medication') {
+      title = '🔔 Recordatorio de medicamento anunciado';
+    } else if (reminderType === 'appointment') {
+      title = '📅 Recordatorio de cita anunciado';
+    } else if (reminderType === 'event') {
+      title = '🔔 Recordatorio de evento anunciado';
+    } else {
+      title = '🔔 Recordatorio anunciado';
+    }
+    
+    description = capitalizeFirst(finalTitle);
   }
 
   return {
     id: dto.id || 0,
     type,
     title,
-    description: dto.details || '',
+    description,
     date: `${dd}/${mm}/${yyyy}`,
     time: `${hh}:${min}`,
     elderName: 'Usuario'
@@ -66,17 +133,22 @@ const fromDTO = (dto: HistoryEventDTO): Alert => {
 
 export default function HistoryScreen() {
   const { user } = useAuth();
+  const { elderly } = useElderly();
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<AlertType | 'all'>('all');
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   // Load history from API
   const loadHistory = async () => {
-    if (!user?.id) return;
+    // Use elderly's ID instead of the caregiver's ID
+    if (!elderly?.id) {
+      console.log('No elderly ID available');
+      return;
+    }
 
     try {
       setLoading(true);
-      // Get events from the last 30 days
+      // Get events from the last 30 days for the elderly person
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
@@ -84,8 +156,14 @@ export default function HistoryScreen() {
       const startStr = startDate.toISOString();
       const endStr = endDate.toISOString();
 
-      const data = await apiClient.getHistoryByUserId(user.id, startStr, endStr);
-      setAlerts(data.map(fromDTO));
+      console.log('Loading history for elderly ID:', elderly.id);
+      const data = await apiClient.getHistoryByUserId(elderly.id, startStr, endStr);
+      console.log('History data received:', data);
+      
+      // Map events to alerts, handling async fromDTO
+      const alertsPromises = data.map(fromDTO);
+      const alertsData = await Promise.all(alertsPromises);
+      setAlerts(alertsData);
     } catch (error: any) {
       console.error('Error loading history:', error);
       RNAlert.alert('Error', error.message || 'No se pudo cargar el historial');
@@ -94,10 +172,12 @@ export default function HistoryScreen() {
     }
   };
 
-  // Load history when component mounts or user changes
+  // Load history when component mounts or elderly changes
   useEffect(() => {
-    loadHistory();
-  }, [user]);
+    if (elderly?.id) {
+      loadHistory();
+    }
+  }, [elderly]);
 
   const getFilteredAlerts = () => {
     if (activeFilter === 'all') return alerts;
@@ -108,8 +188,6 @@ export default function HistoryScreen() {
     switch (type) {
       case 'fall':
         return <AlertTriangle size={24} color="#EF4444" />;
-      case 'help':
-        return <HelpCircle size={24} color="#F59E0B" />;
       case 'medication_taken':
         return <Check size={24} color="#10B981" />;
       case 'medication_missed':
@@ -121,8 +199,6 @@ export default function HistoryScreen() {
     switch (type) {
       case 'fall':
         return '#EF4444';
-      case 'help':
-        return '#F59E0B';
       case 'medication_taken':
         return '#10B981';
       case 'medication_missed':
@@ -134,8 +210,6 @@ export default function HistoryScreen() {
     switch (type) {
       case 'fall':
         return '#FEE2E2';
-      case 'help':
-        return '#FEF3C7';
       case 'medication_taken':
         return '#D1FAE5';
       case 'medication_missed':
@@ -161,10 +235,7 @@ export default function HistoryScreen() {
         {getAlertIcon(alert.type)}
       </View>
       <View style={styles.alertContent}>
-        <View style={styles.alertHeader}>
-          <Text style={styles.alertTitle}>{alert.title}</Text>
-          <Text style={styles.alertElderName}>{alert.elderName}</Text>
-        </View>
+        <Text style={styles.alertTitle}>{alert.title}</Text>
         <Text style={styles.alertDescription}>{alert.description}</Text>
         <Text style={styles.alertDateTime}>
           📅 {alert.date} • ⏰ {alert.time}
@@ -187,7 +258,6 @@ export default function HistoryScreen() {
         <View style={styles.filtersContainer}>
           {renderFilterButton('all', 'Todas', <Pill size={16} color={activeFilter === 'all' ? 'white' : '#6B7280'} />)}
           {renderFilterButton('fall', 'Caídas', <AlertTriangle size={16} color={activeFilter === 'fall' ? 'white' : '#6B7280'} />)}
-          {renderFilterButton('help', 'Auxilio', <HelpCircle size={16} color={activeFilter === 'help' ? 'white' : '#6B7280'} />)}
           {renderFilterButton('medication_taken', 'Tomada', <Check size={16} color={activeFilter === 'medication_taken' ? 'white' : '#6B7280'} />)}
           {renderFilterButton('medication_missed', 'No tomada', <X size={16} color={activeFilter === 'medication_missed' ? 'white' : '#6B7280'} />)}
         </View>
@@ -322,25 +392,11 @@ const styles = StyleSheet.create({
   alertContent: {
     flex: 1,
   },
-  alertHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   alertTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
-  },
-  alertElderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    marginBottom: 4,
   },
   alertDescription: {
     fontSize: 14,
