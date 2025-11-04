@@ -4,6 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { ProfileProvider } from '../context/profile-context';
+import { AuthProvider } from '../context/auth-context';
+import { ElderlyProvider } from '../context/elderly-context';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import '../utils/errorConfig'; // Configure error handling
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
@@ -45,15 +49,19 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <ProfileProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="light" />
-      </ProfileProvider>
-    </>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ElderlyProvider>
+          <ProfileProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="light" />
+          </ProfileProvider>
+        </ElderlyProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

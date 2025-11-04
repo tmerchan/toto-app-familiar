@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './auth-context';
+import { apiClient } from '../api/client';
 
 export type Profile = {
   name: string;
@@ -15,41 +17,102 @@ type ProfileCtx = {
   setProfile: (p: Profile) => void;
   updateProfile: (partial: Partial<Profile>) => void;
   resetProfile: () => void;
+  acceptedTerms: boolean;
+  setAcceptedTerms: (value: boolean) => void;
 };
 
-const defaultProfile: Profile = {
-  name: 'Tamara González',
-  email: 'tamara.gonzalez@email.com',
-  phone: '+56 9 1234 5678',
-  address: 'Santiago, Chile',
-  birthdate: '15/03/1985',
+const getDefaultProfile = (): Profile => ({
+  name: '',
+  email: '',
+  phone: '',
+  address: '',
+  birthdate: '',
   photoUri: null,
-};
+});
 
 const Ctx = createContext<ProfileCtx | null>(null);
 
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfileState] = useState<Profile>(defaultProfile);
+  const { user } = useAuth();
+  const [profile, setProfileState] = useState<Profile>(getDefaultProfile());
+  const [acceptedTerms, setAcceptedTermsState] = useState<boolean>(false);
+
+  // Initialize profile from user data when user logs in
+  useEffect(() => {
+    if (user) {
+      setProfileState({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        birthdate: user.birthdate || '',
+        photoUri: null, // Photo URI is not in UserDTO, keep from local storage
+      });
+    } else {
+      setProfileState(getDefaultProfile());
+    }
+  }, [user]);
 
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem('@profile');
-        if (raw) setProfileState(JSON.parse(raw));
+        const rawProfile = await AsyncStorage.getItem('@profile');
+        const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
+        if (rawProfile) {
+          const stored = JSON.parse(rawProfile);
+          // Merge stored profile (especially photoUri) with current profile
+          setProfileState(prev => ({ ...prev, photoUri: stored.photoUri }));
+        }
+        if (rawTerms) setAcceptedTermsState(JSON.parse(rawTerms));
       } catch {}
     })();
   }, []);
 
-  const persist = async (p: Profile) => {
+  const persistProfile = async (p: Profile) => {
     setProfileState(p);
     try { await AsyncStorage.setItem('@profile', JSON.stringify(p)); } catch {}
   };
 
-  const setProfile = (p: Profile) => persist(p);
-  const updateProfile = (partial: Partial<Profile>) => persist({ ...profile, ...partial });
-  const resetProfile = () => persist(defaultProfile);
+  const persistTerms = async (value: boolean) => {
+    setAcceptedTermsState(value);
+    try { await AsyncStorage.setItem('@acceptedTerms', JSON.stringify(value)); } catch {}
+  };
 
-  return <Ctx.Provider value={{ profile, setProfile, updateProfile, resetProfile }}>{children}</Ctx.Provider>;
+  const setProfile = (p: Profile) => persistProfile(p);
+  
+  const updateProfile = async (partial: Partial<Profile>) => {
+    const updatedProfile = { ...profile, ...partial };
+    
+    // Update in backend if user exists
+    if (user?.id) {
+      try {
+        await apiClient.updateUser(user.id, {
+          name: updatedProfile.name,
+          phone: updatedProfile.phone,
+          address: updatedProfile.address,
+          birthdate: updatedProfile.birthdate,
+        });
+        // Update local state and storage
+        await persistProfile(updatedProfile);
+      } catch (error) {
+        console.error('Error updating profile in backend:', error);
+        // Still update locally even if backend fails
+        await persistProfile(updatedProfile);
+        throw error;
+      }
+    } else {
+      // Just update locally if no user
+      await persistProfile(updatedProfile);
+    }
+  };
+  
+  const resetProfile = () => persistProfile(getDefaultProfile());
+
+  return (
+    <Ctx.Provider value={{ profile, setProfile, updateProfile, resetProfile, acceptedTerms, setAcceptedTerms: persistTerms }}>
+      {children}
+    </Ctx.Provider>
+  );
 };
 
 export const useProfile = () => {

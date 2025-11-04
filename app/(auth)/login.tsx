@@ -13,8 +13,11 @@ import {
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
+import { useProfile } from '../../context/profile-context';
+import { useAuth } from '../../context/auth-context';
 
 export default function LoginScreen() {
+  const { login, error: authError, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,20 +28,23 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
-  };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      Alert.alert('Éxito', 'Iniciando sesión con Google...');
+    try {
+      setIsLoading(true);
+      clearError();
+
+      await login({ email, password });
+
+      // Always check terms from AsyncStorage (fresh check)
+      // Redirigir directamente al home
       router.replace('/(tabs)');
-    }, 1000);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error?.message || 'Error al iniciar sesión. Verifica tus credenciales.';
+      Alert.alert('Error de autenticación', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,7 +55,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoWrap}>
+          <View style={styles.logoContainer}>
             <Image
               source={require('../../assets/images/logo_toto.png')}
               style={styles.logoImage}
@@ -58,8 +64,6 @@ export default function LoginScreen() {
               accessibilityLabel="Logo Toto"
             />
           </View>
-
-          <Text style={styles.subtitle}>Mantente conectado con tu ser querido</Text>
         </View>
 
         {/* Login Form */}
@@ -93,6 +97,7 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
+                autoCapitalize="none"
               />
               <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
@@ -119,18 +124,6 @@ export default function LoginScreen() {
             {!isLoading && <ArrowRight size={20} color="white" />}
           </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o continúa con</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google */}
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} disabled={isLoading}>
-            <Text style={styles.googleButtonText}>🔍 Google</Text>
-          </TouchableOpacity>
-
           {/* Register */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
@@ -147,34 +140,59 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F2EFEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContent: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    width: '100%',
+  },
   header: { alignItems: 'center', marginBottom: 40 },
 
-  logoWrap: {
-    width: '100%',
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'white',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoImage: {
-    width: 260,
-    height: 120,
+    width: 200,
+    height: 200,
   },
 
-  title: { fontSize: 32, fontWeight: '700', color: '#1F2937', marginBottom: 8 },
+  title: { fontSize: 32, fontWeight: '700', color: '#1F2937', marginBottom: 8, fontFamily: 'PlayfairDisplay-Bold' },
   subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
 
   formContainer: {
+    width: '95%',
+    maxWidth: 640,
+    alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
   },
-  formTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 24, textAlign: 'center' },
+  formTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 24, textAlign: 'center', fontFamily: 'PlayfairDisplay-Bold' },
 
   inputContainer: { marginBottom: 16 },
   inputWrapper: {
@@ -206,22 +224,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   loginButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
-
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { marginHorizontal: 16, fontSize: 14, color: '#6B7280' },
-
-  googleButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
-  },
-  googleButtonText: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
 
   registerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#6B7280' },

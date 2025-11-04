@@ -1,7 +1,7 @@
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, ActivityIndicator
 } from 'react-native';
-import { ChevronLeft, User, Mail, Phone, MapPin, Calendar, Pencil as Edit2, Save } from 'lucide-react-native';
+import { ChevronLeft, User, Mail, Phone, MapPin, Calendar, Pencil as Edit2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +9,7 @@ import { useProfile } from '../context/profile-context';
 
 export default function UserProfileScreen() {
   const { profile, updateProfile } = useProfile();
+  const [loading, setLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
@@ -19,6 +20,59 @@ export default function UserProfileScreen() {
     birthdate: profile.birthdate,
     photoUri: profile.photoUri ?? null,
   });
+
+  const formatBirthdate = (text: string) => {
+    // Eliminar todo lo que no sea número
+    const numbers = text.replace(/[^\d]/g, '');
+    
+    // Limitar a 8 dígitos
+    const limited = numbers.slice(0, 8);
+    
+    // Aplicar formato DD/MM/AAAA
+    if (limited.length <= 2) {
+      return limited;
+    } else if (limited.length <= 4) {
+      return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+    } else {
+      return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+    }
+  };
+
+  const handleBirthdateChange = (text: string) => {
+    const formatted = formatBirthdate(text);
+    setEditedData({ ...editedData, birthdate: formatted });
+  };
+
+  const validateBirthdate = (dateString: string): boolean => {
+    // Verificar formato DD/MM/AAAA
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateString.match(regex);
+    
+    if (!match) return false;
+    
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    
+    // Verificar rangos básicos
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    
+    // Verificar año razonable (mayor de 18 años y menor de 120 años)
+    const currentYear = new Date().getFullYear();
+    if (year < currentYear - 120 || year > currentYear - 18) return false;
+    
+    // Verificar días por mes
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    // Año bisiesto
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (isLeapYear) daysInMonth[1] = 29;
+    
+    if (day > daysInMonth[month - 1]) return false;
+    
+    return true;
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,10 +88,23 @@ export default function UserProfileScreen() {
     }
   };
 
-  const handleSave = () => {
-    updateProfile(editedData);
-    setIsEditing(false);
-    Alert.alert('Éxito', 'Perfil actualizado correctamente');
+  const handleSave = async () => {
+    if (!validateBirthdate(editedData.birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA y verifica que seas mayor de 18 años.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await updateProfile(editedData);
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Perfil actualizado correctamente');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', error?.message || 'No se pudo actualizar el perfil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -68,8 +135,16 @@ export default function UserProfileScreen() {
         <TextInput
           style={styles.fieldInput}
           value={String(editedData[field] ?? '')}
-          onChangeText={(text) => setEditedData({ ...editedData, [field]: text })}
+          onChangeText={(text) => {
+            if (field === 'birthdate') {
+              handleBirthdateChange(text);
+            } else {
+              setEditedData({ ...editedData, [field]: text });
+            }
+          }}
           placeholder={label}
+          keyboardType={field === 'birthdate' ? 'numeric' : 'default'}
+          maxLength={field === 'birthdate' ? 10 : undefined}
         />
       ) : (
         <Text style={styles.fieldValue}>{String(editedData[field] ?? '')}</Text>
@@ -87,8 +162,9 @@ export default function UserProfileScreen() {
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => { isEditing ? handleSave() : setIsEditing(true); }}
+          accessibilityLabel={isEditing ? 'Guardar cambios' : 'Editar perfil'}
         >
-          {isEditing ? <Save size={24} color="#6B8E23" /> : <Edit2 size={24} color="#6B8E23" />}
+          <Edit2 size={20} color={isEditing ? '#6B8E23' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
@@ -140,34 +216,36 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor:'#F5F5F5' },
-  header:{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingTop:60, paddingHorizontal:24, paddingBottom:20, backgroundColor:'white', borderBottomWidth:1, borderBottomColor:'#E5E7EB' },
-  backButton:{ width:44, height:44, borderRadius:22, justifyContent:'center', alignItems:'center' },
-  headerTitle:{ fontSize:24, fontFamily:'PlayfairDisplay-Bold', color:'#1F2937' },
-  editButton:{ width:44, height:44, borderRadius:22, justifyContent:'center', alignItems:'center' },
-  scrollView:{ flex:1 },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  backButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay-Bold', color: '#1F2937' },
+  editButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  scrollView: { flex: 1 },
 
-  profileImageSection:{ backgroundColor:'white', alignItems:'center', paddingVertical:40, marginBottom:20 },
-  profileImageContainer:{ position:'relative', marginBottom:16 },
-  profileImage:{ width:120, height:120, borderRadius:60, backgroundColor:'#F0FDF4', justifyContent:'center', alignItems:'center', borderWidth:4, borderColor:'#E5E7EB' },
-  profileImageReal:{ width:120, height:120, borderRadius:60, borderWidth:4, borderColor:'#E5E7EB' },
-  changePhotoButton:{ position:'absolute', bottom:0, right:0, width:36, height:36, borderRadius:18, backgroundColor:'#6B8E23', justifyContent:'center', alignItems:'center', borderWidth:3, borderColor:'white' },
-  profileName:{ fontSize:24, fontWeight:'700', color:'#1F2937', marginBottom:4 },
-  profileRole:{ fontSize:14, color:'#6B7280' },
+  profileImageSection: { backgroundColor: 'white', alignItems: 'center', paddingVertical: 40, marginBottom: 20 },
+  profileImageContainer: { position: 'relative', marginBottom: 16 },
+  profileImage: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: '#E5E7EB' },
+  profileImageReal: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: '#E5E7EB' },
+  changePhotoButton: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: '#6B8E23', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'white' },
+  profileName: { fontSize: 24, fontWeight: '700', color: '#1F2937', marginBottom: 4 },
+  profileRole: { fontSize: 14, color: '#6B7280' },
 
-  fieldsContainer:{ backgroundColor:'white', paddingVertical:24, paddingHorizontal:24, marginBottom:20 },
-  sectionTitle:{ fontSize:18, fontWeight:'700', color:'#1F2937', marginBottom:20 },
-  fieldContainer:{ marginBottom:24 },
-  fieldHeader:{ flexDirection:'row', alignItems:'center', marginBottom:8 },
-  fieldIcon:{ marginRight:8 },
-  fieldLabel:{ fontSize:14, fontWeight:'600', color:'#6B7280' },
-  fieldValue:{ fontSize:16, color:'#1F2937', paddingVertical:12, paddingHorizontal:16, backgroundColor:'#F9FAFB', borderRadius:8, borderWidth:1, borderColor:'#E5E7EB' },
-  fieldInput:{ fontSize:16, color:'#1F2937', paddingVertical:12, paddingHorizontal:16, backgroundColor:'white', borderRadius:8, borderWidth:2, borderColor:'#6B8E23' },
+  fieldsContainer: { backgroundColor: 'white', paddingVertical: 24, paddingHorizontal: 24, marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 20 },
+  fieldContainer: { marginBottom: 24 },
+  fieldHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  fieldIcon: { marginRight: 8 },
+  fieldLabel: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  fieldValue: { fontSize: 16, color: '#1F2937', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
+  fieldInput: { fontSize: 16, color: '#1F2937', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: 'white', borderRadius: 8, borderWidth: 2, borderColor: '#6B8E23' },
 
-  actionButtons:{ flexDirection:'row', paddingHorizontal:24, gap:12, marginBottom:20 },
-  cancelButton:{ flex:1, backgroundColor:'#F3F4F6', borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center' },
-  cancelButtonText:{ fontSize:16, fontWeight:'600', color:'#6B7280' },
-  saveButton:{ flex:1, backgroundColor:'#6B8E23', borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center' },
-  saveButtonText:{ fontSize:16, fontWeight:'600', color:'white' },
-  bottomSpacing:{ height:40 },
+  actionButtons: { flexDirection: 'row', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
+  cancelButton: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  cancelButtonText: { fontSize: 16, fontWeight: '600', color: '#6B7280' },
+  saveButton: { flex: 1, backgroundColor: '#6B8E23', borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  saveButtonText: { fontSize: 16, fontWeight: '600', color: 'white' },
+  bottomSpacing: { height: 40 },
+  tab: { paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB', alignItems: 'center' },
+  tabText: { fontSize: 16, color: '#6B7280' },
 });

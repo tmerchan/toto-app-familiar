@@ -4,12 +4,16 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  StatusBar
+  StatusBar,
+  Linking,
+  Alert
 } from 'react-native';
 import { Phone, Bell, TriangleAlert as AlertTriangle, Check, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { useAuth } from '../../context/auth-context';
+import { useElderly } from '../../context/elderly-context';
 
 function SoftBackground() {
   return (
@@ -40,6 +44,8 @@ function SoftBackground() {
 }
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { elderly } = useElderly();
   const [hasFallAlert, setHasFallAlert] = useState(false);
 
   const getCurrentDate = () => {
@@ -58,6 +64,36 @@ export default function HomeScreen() {
   const navigateToReminders = () => router.push('/reminders');
   const navigateToHistory = () => router.push('/history');
 
+  const openWhatsApp = async () => {
+    if (!elderly?.phone) {
+      Alert.alert('Error', 'No hay número de teléfono disponible para el adulto mayor');
+      return;
+    }
+
+    // Clean phone number - remove spaces, dashes, parentheses
+    const cleanPhone = elderly.phone.replace(/[\s\-()]/g, '');
+    
+    // WhatsApp URL format: whatsapp://send?phone=PHONE_NUMBER
+    // For international numbers, include country code without + or 00
+    const whatsappUrl = `whatsapp://send?phone=${cleanPhone}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        Alert.alert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tener la aplicación instalada.');
+      }
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      Alert.alert('Error', 'No se pudo abrir WhatsApp');
+    }
+  };
+
+  // Extract first name from user.name
+  const firstName = user?.name.split(' ')[0] || 'Usuario';
+  const elderlyName = elderly?.name || 'la persona mayor';
+
   return (
     <View style={styles.container}>
       <SoftBackground />
@@ -69,7 +105,7 @@ export default function HomeScreen() {
           <View style={styles.profileSection}>
             <Text style={styles.dateText}>{getCurrentDate()}</Text>
             <View style={styles.greetingContainer}>
-              <Text style={styles.greetingText}>Hola, Tamara</Text>
+              <Text style={styles.greetingText}>Hola, {firstName}</Text>
               <Text style={styles.waveEmoji}>👋</Text>
             </View>
           </View>
@@ -86,7 +122,7 @@ export default function HomeScreen() {
             {hasFallAlert ? (
               <>
                 <User size={16} color="white" />
-                <Text style={styles.statusText}>Juan Pablo se ha caído</Text>
+                <Text style={styles.statusText}>{elderlyName} se ha caído</Text>
               </>
             ) : (
               <>
@@ -98,7 +134,10 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#f2efeb' }]}>
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: '#f2efeb' }]}
+            onPress={openWhatsApp}
+          >
             <View style={styles.actionIcon}>
               <Phone size={28} color="white" />
             </View>

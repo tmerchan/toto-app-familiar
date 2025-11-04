@@ -1,44 +1,62 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
+import {
+  Mail,
+  Lock,
+  Eye,
   EyeOff,
   User,
   Phone,
   ArrowRight,
-  Heart
+  Heart,
+  MapPin,
+  Calendar
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
+import { useAuth } from '../../context/auth-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEYS = {
+  TERMS_ACCEPTED: '@toto_terms_accepted',
+};
 
 export default function RegisterScreen() {
+  const { register, error: authError, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    address: '',
+    birthdate: '',
     password: '',
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleRegister = async () => {
-    const { name, email, phone, password, confirmPassword } = formData;
+    const { name, email, phone, address, birthdate, password, confirmPassword } = formData;
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (!name || !email || !phone || !address || !birthdate || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+
+    if (!termsAccepted) {
+      Alert.alert('Error', 'Debes aceptar los términos y condiciones para continuar');
       return;
     }
 
@@ -52,33 +70,99 @@ export default function RegisterScreen() {
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simular registro
-    setTimeout(() => {
+    if (!validateBirthdate(birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA y verifica que seas mayor de 18 años.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      clearError();
+
+      await register({
+        name,
+        email,
+        phone,
+        address,
+        birthdate,
+        password,
+        role: 'CAREGIVER',
+      });
+
+      // Guardar que aceptó los términos
+      await AsyncStorage.setItem(STORAGE_KEYS.TERMS_ACCEPTED, 'true');
+
+      // Redirigir a la app principal
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      console.error('Register error:', error);
+      const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
+
+      // Show field errors if available
+      if (error?.fieldErrors) {
+        const fieldErrors = Object.entries(error.fieldErrors)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join('\n');
+        Alert.alert('Error de validación', fieldErrors);
+      } else {
+        Alert.alert('Error de registro', errorMessage);
+      }
+    } finally {
       setIsLoading(false);
-      Alert.alert(
-        'Registro exitoso', 
-        'Tu cuenta ha sido creada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)')
-          }
-        ]
-      );
-    }, 1500);
+    }
   };
 
-  const handleGoogleRegister = async () => {
-    setIsLoading(true);
+  const formatBirthdate = (text: string) => {
+    // Eliminar todo lo que no sea número
+    const numbers = text.replace(/[^\d]/g, '');
     
-    // Simular registro con Google
-    setTimeout(() => {
-      setIsLoading(false);
-      Alert.alert('Éxito', 'Registrándose con Google...');
-      router.replace('/(tabs)');
-    }, 1000);
+    // Limitar a 8 dígitos
+    const limited = numbers.slice(0, 8);
+    
+    // Aplicar formato DD/MM/AAAA
+    if (limited.length <= 2) {
+      return limited;
+    } else if (limited.length <= 4) {
+      return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+    } else {
+      return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+    }
+  };
+
+  const handleBirthdateChange = (text: string) => {
+    const formatted = formatBirthdate(text);
+    updateFormData('birthdate', formatted);
+  };
+
+  const validateBirthdate = (dateString: string): boolean => {
+    // Verificar formato DD/MM/AAAA
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateString.match(regex);
+    
+    if (!match) return false;
+    
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    
+    // Verificar rangos básicos
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    
+    // Verificar año razonable (mayor de 18 años y menor de 120 años)
+    const currentYear = new Date().getFullYear();
+    if (year < currentYear - 120 || year > currentYear - 18) return false;
+    
+    // Verificar días por mes
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    
+    // Año bisiesto
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (isLeapYear) daysInMonth[1] = 29;
+    
+    if (day > daysInMonth[month - 1]) return false;
+    
+    return true;
   };
 
   const updateFormData = (field: string, value: string) => {
@@ -86,29 +170,35 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Heart size={40} color="#6B8E23" />
+            <Image
+              source={require('../../assets/images/logo_toto.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Logo Toto"
+            />
           </View>
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>
-            Únete a CuidaFamilia y mantente conectado
+            Únete a Toto y mantente conectado
           </Text>
         </View>
 
         {/* Register Form */}
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Registro</Text>
-          
+
           {/* Name Input */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
@@ -155,6 +245,36 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          {/* Address Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <MapPin size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Dirección"
+                value={formData.address}
+                onChangeText={(text) => updateFormData('address', text)}
+                autoCapitalize="words"
+                autoComplete="street-address"
+              />
+            </View>
+          </View>
+
+          {/* Birthdate Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Calendar size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Fecha de nacimiento"
+                value={formData.birthdate}
+                onChangeText={handleBirthdateChange}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+          </View>
+
           {/* Password Input */}
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
@@ -166,6 +286,7 @@ export default function RegisterScreen() {
                 onChangeText={(text) => updateFormData('password', text)}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
+                autoCapitalize="none"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -191,6 +312,7 @@ export default function RegisterScreen() {
                 onChangeText={(text) => updateFormData('confirmPassword', text)}
                 secureTextEntry={!showConfirmPassword}
                 autoComplete="new-password"
+                autoCapitalize="none"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -205,32 +327,34 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          {/* Terms and Conditions Checkbox */}
+          <TouchableOpacity
+            style={styles.termsContainer}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <View style={styles.termsTextContainer}>
+              <Text style={styles.termsText}>Acepto los </Text>
+              <Link href="/terms-and-conditions" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.termsLink}>términos y condiciones</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </TouchableOpacity>
+
           {/* Register Button */}
           <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.buttonDisabled]}
+            style={[styles.registerButton, (isLoading || !termsAccepted) && styles.buttonDisabled]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isLoading || !termsAccepted}
           >
             <Text style={styles.registerButtonText}>
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </Text>
             {!isLoading && <ArrowRight size={20} color="white" />}
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o regístrate con</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Register Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleRegister}
-            disabled={isLoading}
-          >
-            <Text style={styles.googleButtonText}>🔍 Google</Text>
           </TouchableOpacity>
 
           {/* Login Link */}
@@ -251,16 +375,20 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F2EFEB', // Color beige
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    width: '100%',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   logoContainer: {
     width: 80,
@@ -270,6 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -277,15 +406,15 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -294,9 +423,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   formContainer: {
+    width: '97%',
+    maxWidth: 680,
+    alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -309,6 +442,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 24,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   inputContainer: {
     marginBottom: 16,
@@ -334,6 +468,45 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 4,
   },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#6B8E23',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#6B8E23',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  termsTextContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  termsLink: {
+    fontSize: 14,
+    color: '#6B8E23',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   registerButton: {
     backgroundColor: '#6B8E23',
     borderRadius: 12,
@@ -353,40 +526,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  googleButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
   },
   loginText: {
     fontSize: 14,

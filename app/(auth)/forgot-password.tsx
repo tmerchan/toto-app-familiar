@@ -1,17 +1,22 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image,
+  Linking
 } from 'react-native';
 import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
+import { apiClient } from '../../api/client';
+
+const SUPPORT_PHONE = '+5491159753115';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -23,9 +28,49 @@ export default function ForgotPasswordScreen() {
       console.error('Navigation error:', error);
     }
   };
+
+  const handleContactSupport = () => {
+    const url = `whatsapp://send?phone=${SUPPORT_PHONE}&text=${encodeURIComponent('Hola, necesito ayuda con la recuperación de mi contraseña.')}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert(
+            'WhatsApp no disponible',
+            'Por favor instala WhatsApp para contactar con soporte.'
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening WhatsApp:', err);
+        Alert.alert('Error', 'No se pudo abrir WhatsApp');
+      });
+  };
+
+  const handleCallSupport = () => {
+    const url = `tel:${SUPPORT_PHONE}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert(
+            'Error',
+            'No se pudo abrir el teléfono'
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening phone:', err);
+        Alert.alert('Error', 'No se pudo abrir el teléfono');
+      });
+  };
+
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resetToken, setResetToken] = useState('');
 
   const handleSendReset = async () => {
     if (!email) {
@@ -40,23 +85,37 @@ export default function ForgotPasswordScreen() {
     }
 
     setIsLoading(true);
-    
-    // Simular envío de email
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      const response = await apiClient.forgotPassword(email);
+      setResetToken(response.token);
       setEmailSent(true);
-    }, 2000);
+      Alert.alert(
+        'Token Generado', 
+        `Token de recuperación: ${response.token}\n\nEn producción, este se enviaría por email.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Error requesting password reset:', error);
+      Alert.alert(
+        'Error', 
+        error.message || 'No se pudo procesar tu solicitud. Verifica que el email esté registrado.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendEmail = () => {
     setEmailSent(false);
+    setResetToken('');
     handleSendReset();
   };
 
   if (emailSent) {
     return (
       <View style={styles.container}>
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -64,17 +123,31 @@ export default function ForgotPasswordScreen() {
             <View style={styles.successIcon}>
               <CheckCircle size={60} color="#10B981" />
             </View>
-            
-            <Text style={styles.successTitle}>¡Email Enviado!</Text>
+
+            <Text style={styles.successTitle}>¡Token Generado!</Text>
             <Text style={styles.successMessage}>
-              Hemos enviado las instrucciones para restablecer tu contraseña a:
+              Se ha generado un token de recuperación para:
             </Text>
             <Text style={styles.emailText}>{email}</Text>
-            
+
+            <View style={styles.tokenContainer}>
+              <Text style={styles.tokenLabel}>Token de recuperación:</Text>
+              <Text style={styles.tokenText}>{resetToken}</Text>
+              <Text style={styles.tokenNote}>
+                ⚠️ Copia este token. En producción, se enviaría por email.
+              </Text>
+            </View>
+
             <Text style={styles.instructionText}>
-              Revisa tu bandeja de entrada y sigue las instrucciones del correo. 
-              Si no lo encuentras, revisa tu carpeta de spam.
+              Usa este token en la siguiente pantalla para restablecer tu contraseña.
             </Text>
+
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={() => router.push('/(auth)/reset-password' as any)}
+            >
+              <Text style={styles.continueButtonText}>Continuar al reseteo</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.resendButton}
@@ -97,37 +170,42 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#6B8E23" />
           </TouchableOpacity>
-          
+
           <View style={styles.logoContainer}>
-            <Heart size={40} color="#6B8E23" />
+            <Image
+              source={require('../../assets/images/logo_toto.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Logo Toto"
+            />
           </View>
-          <Text style={styles.title}>Recuperar Contraseña</Text>
+          <Text style={styles.title}>Restablece tu contraseña</Text>
           <Text style={styles.subtitle}>
-            Ingresa tu correo electrónico y te enviaremos las instrucciones 
-            para restablecer tu contraseña
+            Introduce tu correo electrónico y te enviaremos un enlace para restablecerla.
           </Text>
         </View>
 
         {/* Form */}
         <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>Restablecer Contraseña</Text>
-          
+          <Text style={styles.formTitle}>Solicitar restablecimiento</Text>
+
           {/* Email Input */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Correo electrónico</Text>
@@ -154,7 +232,7 @@ export default function ForgotPasswordScreen() {
           >
             <Send size={20} color="white" />
             <Text style={styles.sendButtonText}>
-              {isLoading ? 'Enviando...' : 'Enviar Instrucciones'}
+              {isLoading ? 'Enviando...' : 'Enviar enlace de restablecimiento'}
             </Text>
           </TouchableOpacity>
 
@@ -173,11 +251,14 @@ export default function ForgotPasswordScreen() {
         <View style={styles.helpContainer}>
           <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
           <Text style={styles.helpText}>
-            Si tienes problemas para recuperar tu cuenta, puedes contactar 
+            Si tienes problemas para recuperar tu cuenta, puedes contactar
             a nuestro equipo de soporte técnico.
           </Text>
-          <TouchableOpacity style={styles.supportButton}>
-            <Text style={styles.supportButtonText}>Contactar Soporte</Text>
+          <TouchableOpacity style={styles.supportButton} onPress={handleContactSupport}>
+            <Text style={styles.supportButtonText}>Chat en Vivo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.callButton} onPress={handleCallSupport}>
+            <Text style={styles.callButtonText}>Llamar al Soporte</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -188,7 +269,9 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F2EFEB', // Color beige
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -231,9 +314,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 28,
@@ -241,6 +323,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -266,6 +349,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 20,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   inputContainer: {
     marginBottom: 24,
@@ -337,6 +421,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 8,
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   helpText: {
     fontSize: 14,
@@ -350,11 +435,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+    marginBottom: 12,
   },
   supportButtonText: {
     fontSize: 14,
     color: '#6B8E23',
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  callButton: {
+    backgroundColor: '#6B8E23',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  callButtonText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   // Success screen styles
   successContainer: {
@@ -372,6 +471,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
     textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
   },
   successMessage: {
     fontSize: 16,
@@ -388,10 +488,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   instructionText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 32,
     paddingHorizontal: 16,
   },
@@ -418,6 +517,52 @@ const styles = StyleSheet.create({
   backToLoginText: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
+  },
+  tokenContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: '100%',
+  },
+  tokenLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  tokenText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#6B8E23',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6B8E23',
+    marginBottom: 8,
+  },
+  tokenNote: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  continueButton: {
+    backgroundColor: '#6B8E23',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    width: '100%',
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
     textAlign: 'center',
   },
 });

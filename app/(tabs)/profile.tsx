@@ -14,7 +14,7 @@ export default function MyProfileScreen() {
 
   const handleEditProfile = () => router.push('/user-profile');
   const handlePaymentMethod = () => router.push('/subscription');
-  const handlePrivacyPolicy = () => router.push('/privacy-policy');
+  const handlePrivacyPolicy = () => router.push('/terms-and-conditions');
   const handleSettings = () => router.push('/settings');
   const handleHelp = () => router.push('/help');
 
@@ -84,27 +84,27 @@ export default function MyProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor:'#F5F5F5' },
-  header:{ paddingTop:60, paddingHorizontal:24, paddingBottom:20, backgroundColor:'white', borderBottomWidth:1, borderBottomColor:'#E5E7EB', alignItems:'center' },
-  headerTitle:{ fontSize:28, fontFamily:'PlayfairDisplay-Bold', color:'#1F2937', textAlign:'center' },
-  scrollView:{ flex:1 },
-  profileSection:{ backgroundColor:'white', alignItems:'center', paddingVertical:40, marginBottom:20 },
-  profileImageContainer:{ position:'relative', marginBottom:16 },
-  profileImage:{ width:100, height:100, borderRadius:50, backgroundColor:'#F0FDF4', justifyContent:'center', alignItems:'center', borderWidth:3, borderColor:'#E5E7EB' },
-  profileImageReal:{ width:100, height:100, borderRadius:50, borderWidth:3, borderColor:'#E5E7EB' },
-  profileName:{ fontSize:24, fontWeight:'700', color:'#1F2937' },
-  menuContainer:{ backgroundColor:'white' },
-  menuItem:{ flexDirection:'row', alignItems:'center', paddingHorizontal:24, paddingVertical:16, borderBottomWidth:1, borderBottomColor:'#F3F4F6' },
-  menuIcon:{ width:40, height:40, borderRadius:20, justifyContent:'center', alignItems:'center', marginRight:16 },
-  menuTitle:{ flex:1, fontSize:16, fontWeight:'500', color:'#1F2937' },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', alignItems: 'center' },
+  headerTitle: { fontSize: 28, fontFamily: 'PlayfairDisplay-Bold', color: '#1F2937', textAlign: 'center' },
+  scrollView: { flex: 1 },
+  profileSection: { backgroundColor: 'white', alignItems: 'center', paddingVertical: 40, marginBottom: 20 },
+  profileImageContainer: { position: 'relative', marginBottom: 16 },
+  profileImage: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#E5E7EB' },
+  profileImageReal: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#E5E7EB' },
+  profileName: { fontSize: 24, fontWeight: '700', color: '#1F2937' },
+  menuContainer: { backgroundColor: 'white' },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  menuIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  menuTitle: { flex: 1, fontSize: 16, fontWeight: '500', color: '#1F2937' },
   // Modal styles
-  modalBackdrop:{ flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'center', alignItems:'center', padding:24 },
-  modalCard:{ width:'100%', backgroundColor:'white', borderRadius:16, padding:20, borderWidth:1, borderColor:'#E5E7EB' },
-  modalTitle:{ fontSize:18, fontWeight:'700', color:'#1F2937', marginBottom:6 },
-  modalText:{ fontSize:14, color:'#374151', marginBottom:18 },
-  modalActions:{ flexDirection:'row', gap:10 },
-  modalCancel:{ flex:1, backgroundColor:'#F3F4F6', borderRadius:12, paddingVertical:14, alignItems:'center' },
-  modalCancelText:{ fontSize:16, fontWeight:'600', color:'#6B7280' },
-  modalConfirm:{ flex:1, backgroundColor:'#6B8E23', borderRadius:12, paddingVertical:14, alignItems:'center' },
-  modalConfirmText:{ fontSize:16, fontWeight:'600', color:'white' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', backgroundColor: 'white', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 6 },
+  modalText: { fontSize: 14, color: '#374151', marginBottom: 18 },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalCancel: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  modalCancelText: { fontSize: 16, fontWeight: '600', color: '#6B7280' },
+  modalConfirm: { flex: 1, backgroundColor: '#6B8E23', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  modalConfirmText: { fontSize: 16, fontWeight: '600', color: 'white' },
 });

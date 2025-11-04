@@ -9,37 +9,24 @@ import {
 } from 'react-native';
 import { ChevronLeft, Check } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 
 const BRAND = '#6B8E23';
 
-export default function PrivacyPolicyScreen() {
+export default function TermsAndConditionsScreen() {
   const router = useRouter();
-  const [accepted, setAccepted] = useState(false);
 
   const navigateBack = () => {
     try {
-      router.replace('/(tabs)/profile');
+      router.back();
     } catch (error) {
       console.error('Navigation error:', error);
     }
   };
 
-  const handleAccept = () => {
-    setAccepted(true);
-    Alert.alert(
-      'Términos Aceptados',
-      'Has aceptado los términos y condiciones.',
-      [
-        { text: 'OK', onPress: navigateBack }
-      ]
-    );
-  };
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -179,16 +166,7 @@ export default function PrivacyPolicyScreen() {
             Ante la baja, se eliminan de manera definitiva en un plazo razonable.
           </Text>
 
-          <TouchableOpacity
-            style={[styles.acceptButton, accepted && styles.acceptButtonDisabled]}
-            onPress={handleAccept}
-            disabled={accepted}
-          >
-            {accepted && <Check size={20} color="white" style={styles.checkIcon} />}
-            <Text style={styles.acceptButtonText}>
-              {accepted ? 'Términos Aceptados' : 'Aceptar Términos y Condiciones'}
-            </Text>
-          </TouchableOpacity>
+          {/* Read-only: no accept button when viewing from profile */}
         </View>
       </ScrollView>
     </View>

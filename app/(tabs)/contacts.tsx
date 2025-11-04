@@ -13,27 +13,16 @@ import {
   ScrollView,
 } from 'react-native';
 import { User, Phone, Pencil, X } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../context/auth-context';
+import { useElderly } from '../../context/elderly-context';
+import { apiClient } from '../../api/client';
+import type { ContactDTO } from '../../api/types';
 
 const BRAND = '#6B8E23';
 const MAX_WIDTH = 420;
 
-const STORAGE = {
-  CONTACTS: '@trustedContacts',
-  ELDERLY: '@elderlyData',
-};
-
-interface ElderlyPerson {
-  name: string;
-  birthDate: string;
-  phone: string;
-  address: string;
-  medicalInfo: string;
-  emergencyContact: string;
-}
-
 interface TrustedContact {
-  id: string;
+  id: number;
   name: string;
   relationship: string;
   phone: string;
@@ -46,78 +35,172 @@ const isPhoneValid = (s: string) => {
   return digits.length >= 6 && digits.length <= 20;
 };
 
+const formatBirthdate = (text: string) => {
+  // Eliminar todo lo que no sea número
+  const numbers = text.replace(/[^\d]/g, '');
+  
+  // Limitar a 8 dígitos
+  const limited = numbers.slice(0, 8);
+  
+  // Aplicar formato DD/MM/AAAA
+  if (limited.length <= 2) {
+    return limited;
+  } else if (limited.length <= 4) {
+    return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+  } else {
+    return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`;
+  }
+};
+
+const validateBirthdate = (dateString: string): boolean => {
+  // Verificar formato DD/MM/AAAA
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+  
+  if (!match) return false;
+  
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+  
+  // Verificar rangos básicos
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  
+  // Verificar año razonable (menor de 120 años)
+  const currentYear = new Date().getFullYear();
+  if (year < currentYear - 120 || year > currentYear) return false;
+  
+  // Verificar días por mes
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  // Año bisiesto
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  if (isLeapYear) daysInMonth[1] = 29;
+  
+  if (day > daysInMonth[month - 1]) return false;
+  
+  return true;
+};
+
 export default function ContactsScreen() {
+  const { user } = useAuth();
+  const { elderly, refreshElderly, isLoading: elderlyLoading, error: elderlyError } = useElderly();
   const [activeTab, setActiveTab] = useState<'elderly' | 'contacts'>('elderly');
   const [isEditing, setIsEditing] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [editingContact, setEditingContact] = useState<TrustedContact | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const initialElderlyData: ElderlyPerson = {
-    name: 'Juan Pablo Yoo',
-    birthDate: '15/03/1945',
-    phone: '+1 234 567 8900',
-    address: 'P. Sherman, 42 Wallaby Way, Sídney',
-    medicalInfo: 'Hipertensión arterial, toma Losartán 50mg diario. Alérgico a la penicilina.',
-    emergencyContact: 'Tamara Merchan - Hija',
-  };
+  // Estado temporal para edición del adulto mayor
+  const [editedElderly, setEditedElderly] = useState({
+    name: '',
+    birthdate: '',
+    phone: '',
+    address: '',
+    medicalInfo: ''
+  });
 
-  const [elderlyData, setElderlyData] = useState<ElderlyPerson>(initialElderlyData);
-  const [originalElderlyData, setOriginalElderlyData] = useState<ElderlyPerson>(initialElderlyData);
-
-  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([
-    { id: '1', name: 'Tamara Merchan', relationship: 'Hija', phone: '+1 234 567 8901' },
-    { id: '2', name: 'Dr. García', relationship: 'Médico', phone: '+1 234 567 8902' },
-  ]);
+  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
+  const [elderlyToken, setElderlyToken] = useState<string | null>(null);
 
   const [newContact, setNewContact] = useState({ name: '', relationship: '', phone: '' });
+  const [showRelationPicker, setShowRelationPicker] = useState(false);
 
   // Modal de confirmación de borrado
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Cargar persistidos
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const [cRaw, eRaw] = await Promise.all([
-          AsyncStorage.getItem(STORAGE.CONTACTS),
-          AsyncStorage.getItem(STORAGE.ELDERLY),
-        ]);
-        if (cRaw) setTrustedContacts(JSON.parse(cRaw));
-        if (eRaw) {
-          const parsed = JSON.parse(eRaw) as ElderlyPerson;
-          setElderlyData(parsed);
-          setOriginalElderlyData(parsed);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  // Modal para crear adulto mayor
+  const [showCreateElderlyModal, setShowCreateElderlyModal] = useState(false);
+  const [newElderlyData, setNewElderlyData] = useState({
+    name: '',
+    birthdate: '',
+    phone: '',
+    address: '',
+    medicalInfo: ''
+  });
 
-  // Persistir contactos cada vez que cambian
-  useEffect(() => {
-    AsyncStorage.setItem(STORAGE.CONTACTS, JSON.stringify(trustedContacts)).catch(() => {});
-  }, [trustedContacts]);
+  // Cargar contactos desde el backend
+  const loadContacts = async () => {
+    if (!elderly?.id) return;
 
-  // Persistir persona mayor al guardar
-  const persistElderly = async (next: ElderlyPerson) => {
-    setElderlyData(next);
-    setOriginalElderlyData(next);
     try {
-      await AsyncStorage.setItem(STORAGE.ELDERLY, JSON.stringify(next));
-    } catch {}
+      setLoading(true);
+      setError(null);
+      const contacts = await apiClient.getContactsByElderlyId(elderly.id);
+      setTrustedContacts(contacts.map(c => ({
+        id: c.id!,
+        name: c.name,
+        relationship: c.relationship || '',
+        phone: c.phone
+      })));
+    } catch (err: any) {
+      console.error('Error loading contacts:', err);
+      setError(err?.message || 'Error al cargar contactos');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Persona mayor
+  // Cargar token del adulto mayor
+  const loadElderlyToken = async () => {
+    if (!elderly?.id) return;
+
+    try {
+      const response = await apiClient.getElderlyAccessToken(elderly.id);
+      setElderlyToken(response.token);
+    } catch (err: any) {
+      console.error('Error loading token:', err);
+      // No mostramos error al usuario, simplemente no se muestra el token
+    }
+  };
+
+  // Cargar contactos cuando el elderly esté disponible
+  useEffect(() => {
+    if (elderly?.id) {
+      loadContacts();
+      loadElderlyToken();
+      // Inicializar datos editables del elderly
+      setEditedElderly({
+        name: elderly.name || '',
+        birthdate: elderly.birthdate || '',
+        phone: elderly.phone || '',
+        address: elderly.address || '',
+        medicalInfo: elderly.medicalInfo || ''
+      });
+    }
+  }, [elderly?.id]);
+
+  // Guardar cambios del adulto mayor
   const handleSaveElderlyData = async () => {
-    await persistElderly({ ...elderlyData });
-    setIsEditing(false);
-    Alert.alert('Éxito', 'Información guardada correctamente');
+    if (!elderly?.id) return;
+
+    if (!validateBirthdate(editedElderly.birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiClient.updateUser(elderly.id, {
+        name: editedElderly.name,
+        birthdate: editedElderly.birthdate,
+        phone: editedElderly.phone,
+        address: editedElderly.address,
+        medicalInfo: editedElderly.medicalInfo
+      });
+      await refreshElderly(); // Recargar datos del elderly
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Información actualizada correctamente');
+    } catch (err: any) {
+      console.error('Error updating elderly:', err);
+      Alert.alert('Error', err?.message || 'No se pudo actualizar la información');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -127,21 +210,32 @@ export default function ContactsScreen() {
         text: 'Cancelar',
         style: 'destructive',
         onPress: () => {
-          setElderlyData({ ...originalElderlyData });
+          // Restaurar valores originales
+          if (elderly) {
+            setEditedElderly({
+              name: elderly.name || '',
+              birthdate: elderly.birthdate || '',
+              phone: elderly.phone || '',
+              address: elderly.address || '',
+              medicalInfo: elderly.medicalInfo || ''
+            });
+          }
           setIsEditing(false);
         },
       },
     ]);
   };
 
-  // Contactos
-  const handleAddContact = () => {
+  // Contactos - Ahora con API
+  const handleAddContact = async () => {
+    if (!elderly?.id) return;
+
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
 
-    if (!name || !phone) {
-      Alert.alert('Error', 'El nombre y teléfono son obligatorios');
+    if (!name || !phone || !relationship) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
     if (!isPhoneValid(phone)) {
@@ -149,16 +243,32 @@ export default function ContactsScreen() {
       return;
     }
 
-    const contact: TrustedContact = {
-      id: Date.now().toString(),
-      name,
-      relationship,
-      phone,
-    };
-    setTrustedContacts((prev) => [...prev, contact]);
-    setNewContact({ name: '', relationship: '', phone: '' });
-    setShowContactModal(false);
-    Alert.alert('Éxito', 'Contacto agregado correctamente');
+    try {
+      setLoading(true);
+      const contactDTO: ContactDTO = {
+        elderlyId: elderly.id,
+        name,
+        relationship,
+        phone,
+      };
+
+      const created = await apiClient.createContact(contactDTO);
+      setTrustedContacts((prev) => [...prev, {
+        id: created.id!,
+        name: created.name,
+        relationship: created.relationship || '',
+        phone: created.phone
+      }]);
+
+      setNewContact({ name: '', relationship: '', phone: '' });
+      setShowContactModal(false);
+      Alert.alert('Éxito', 'Contacto agregado correctamente');
+    } catch (err: any) {
+      console.error('Error adding contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo agregar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditContact = (contact: TrustedContact) => {
@@ -167,15 +277,15 @@ export default function ContactsScreen() {
     setShowContactModal(true);
   };
 
-  const handleUpdateContact = () => {
-    if (!editingContact) return;
+  const handleUpdateContact = async () => {
+    if (!editingContact || !elderly?.id) return;
 
     const name = newContact.name.trim();
     const relationship = newContact.relationship.trim();
     const phone = sanitizePhone(newContact.phone.trim());
 
-    if (!name || !phone) {
-      Alert.alert('Error', 'El nombre y teléfono son obligatorios');
+    if (!name || !phone || !relationship) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
     if (!isPhoneValid(phone)) {
@@ -183,31 +293,115 @@ export default function ContactsScreen() {
       return;
     }
 
-    setTrustedContacts((prev) =>
-      prev.map((c) => (c.id === editingContact.id ? { ...c, name, relationship, phone } : c))
-    );
-    setNewContact({ name: '', relationship: '', phone: '' });
-    setEditingContact(null);
-    setShowContactModal(false);
-    Alert.alert('Éxito', 'Contacto actualizado correctamente');
+    try {
+      setLoading(true);
+      const contactDTO: ContactDTO = {
+        elderlyId: elderly.id,
+        name,
+        relationship,
+        phone,
+      };
+
+      const updated = await apiClient.updateContact(editingContact.id, contactDTO);
+      setTrustedContacts((prev) =>
+        prev.map((c) => (c.id === editingContact.id ? {
+          id: updated.id!,
+          name: updated.name,
+          relationship: updated.relationship || '',
+          phone: updated.phone
+        } : c))
+      );
+
+      setNewContact({ name: '', relationship: '', phone: '' });
+      setEditingContact(null);
+      setShowContactModal(false);
+      Alert.alert('Éxito', 'Contacto actualizado correctamente');
+    } catch (err: any) {
+      console.error('Error updating contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo actualizar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const askDeleteContact = (contactId: string) => {
+  const askDeleteContact = (contactId: number) => {
     setConfirmDeleteId(contactId);
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!confirmDeleteId) return;
-    setTrustedContacts((prev) => prev.filter((c) => c.id !== confirmDeleteId));
-    setConfirmDeleteId(null);
-    setShowDeleteModal(false);
+
+    try {
+      setLoading(true);
+      await apiClient.deleteContact(confirmDeleteId);
+      setTrustedContacts((prev) => prev.filter((c) => c.id !== confirmDeleteId));
+      setConfirmDeleteId(null);
+      setShowDeleteModal(false);
+      Alert.alert('Éxito', 'Contacto eliminado correctamente');
+    } catch (err: any) {
+      console.error('Error deleting contact:', err);
+      Alert.alert('Error', err?.message || 'No se pudo eliminar el contacto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const closeModal = () => {
     setShowContactModal(false);
     setEditingContact(null);
     setNewContact({ name: '', relationship: '', phone: '' });
+  };
+
+  const handleCreateElderly = async () => {
+    const { name, birthdate, phone, address, medicalInfo } = newElderlyData;
+
+    if (!name || !birthdate || !phone || !address || !medicalInfo) {
+      Alert.alert('Error', 'Todos los campos son obligatorios');
+      return;
+    }
+
+    if (!validateBirthdate(birthdate)) {
+      Alert.alert('Error', 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Crear el adulto mayor usando el endpoint correcto
+      const createdElderly = await apiClient.createElderly({
+        name,
+        phone,
+        address,
+        birthdate,
+        medicalInfo,
+      });
+
+      // Crear la relación de cuidado entre el caregiver actual y el elderly
+      if (createdElderly.id) {
+        await apiClient.createCareRelationship(createdElderly.id, 'Familiar');
+      }
+
+      // Recargar la información del elderly
+      await refreshElderly();
+      
+      setShowCreateElderlyModal(false);
+      setNewElderlyData({
+        name: '',
+        birthdate: '',
+        phone: '',
+        address: '',
+        medicalInfo: ''
+      });
+      
+      Alert.alert('Éxito', 'Adulto mayor creado correctamente');
+    } catch (err: any) {
+      console.error('Error creating elderly:', err);
+      Alert.alert('Error', err?.message || 'No se pudo crear el adulto mayor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -257,114 +451,135 @@ export default function ContactsScreen() {
             <View style={styles.infoCard}>
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.sectionTitle}>Información de la Persona Mayor</Text>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => {
-                    if (!isEditing) setOriginalElderlyData({ ...elderlyData });
-                    setIsEditing(!isEditing);
-                  }}
-                >
-                  <Pencil size={20} color={BRAND} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Nombre:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.name}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, name: text }))}
-                    placeholder="Nombre completo"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.name}</Text>
-                )}
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Fecha de Nacimiento:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.birthDate}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, birthDate: text }))}
-                    placeholder="DD/MM/AAAA"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.birthDate}</Text>
-                )}
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Teléfono:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.phone}
-                    onChangeText={(text) =>
-                      setElderlyData((p) => ({ ...p, phone: sanitizePhone(text) }))
-                    }
-                    placeholder="Número de teléfono"
-                    keyboardType="phone-pad"
-                    inputMode="numeric"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.phone}</Text>
-                )}
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Dirección:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    value={elderlyData.address}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, address: text }))}
-                    placeholder="Dirección completa"
-                    multiline
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.address}</Text>
-                )}
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Información Médica:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    value={elderlyData.medicalInfo}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, medicalInfo: text }))}
-                    placeholder="Condiciones médicas, medicamentos, alergias"
-                    multiline
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.medicalInfo}</Text>
-                )}
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Contacto de Emergencia:</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={elderlyData.emergencyContact}
-                    onChangeText={(text) => setElderlyData((p) => ({ ...p, emergencyContact: text }))}
-                    placeholder="Nombre y relación"
-                  />
-                ) : (
-                  <Text style={styles.value}>{elderlyData.emergencyContact}</Text>
-                )}
-              </View>
-
-              {isEditing && (
-                <View style={styles.buttonRowCentered}>
-                  <TouchableOpacity style={styles.btnSecondary} onPress={handleCancelEdit}>
-                    <Text style={styles.btnSecondaryText}>Cancelar</Text>
+                {elderly && (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => {
+                      if (isEditing) {
+                        handleCancelEdit();
+                      } else {
+                        setIsEditing(true);
+                      }
+                    }}
+                  >
+                    <Pencil size={20} color={BRAND} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveElderlyData}>
-                    <Text style={styles.btnPrimaryText}>Guardar</Text>
+                )}
+              </View>
+
+              {elderly ? (
+                <>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Nombre:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.name}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, name: text }))}
+                        placeholder="Nombre completo"
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.name || 'No disponible'}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Fecha de Nacimiento:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.birthdate}
+                        onChangeText={(text) => {
+                          const formatted = formatBirthdate(text);
+                          setEditedElderly((p) => ({ ...p, birthdate: formatted }));
+                        }}
+                        placeholder="DD/MM/AAAA"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.birthdate || 'No disponible'}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Teléfono:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.input}
+                        value={editedElderly.phone}
+                        onChangeText={(text) =>
+                          setEditedElderly((p) => ({ ...p, phone: sanitizePhone(text) }))
+                        }
+                        placeholder="Número de teléfono"
+                        keyboardType="phone-pad"
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.phone || 'No disponible'}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Dirección:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={[styles.input, styles.multilineInput]}
+                        value={editedElderly.address}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, address: text }))}
+                        placeholder="Dirección completa"
+                        multiline
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.address || 'No disponible'}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Información Médica:</Text>
+                    {isEditing ? (
+                      <TextInput
+                        style={[styles.input, styles.multilineInput]}
+                        value={editedElderly.medicalInfo}
+                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, medicalInfo: text }))}
+                        placeholder="Condiciones médicas, medicamentos, alergias"
+                        multiline
+                      />
+                    ) : (
+                      <Text style={styles.value}>{elderly.medicalInfo || 'No disponible'}</Text>
+                    )}
+                  </View>
+
+                  {/* Token del adulto mayor */}
+                  {elderlyToken && (
+                    <View style={styles.tokenBox}>
+                      <Text style={styles.tokenLabel}>Token:</Text>
+                      <Text style={styles.tokenValue}>{elderlyToken}</Text>
+                    </View>
+                  )}
+
+                  {isEditing && (
+                    <View style={styles.buttonRowCentered}>
+                      <TouchableOpacity style={styles.btnSecondary} onPress={handleCancelEdit}>
+                        <Text style={styles.btnSecondaryText}>Cancelar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveElderlyData}>
+                        <Text style={styles.btnPrimaryText}>Guardar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <User size={48} color="#999" />
+                  <Text style={styles.emptyText}>No hay información del adulto mayor</Text>
+                  <Text style={styles.emptySubtext}>
+                    Crea el perfil de la persona mayor que acompañarás
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.addButton} 
+                    onPress={() => setShowCreateElderlyModal(true)}
+                  >
+                    <Text style={styles.addButtonText}>Crear Adulto Mayor</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -380,7 +595,15 @@ export default function ContactsScreen() {
                 Contactos de Confianza
               </Text>
 
-              {trustedContacts.length === 0 ? (
+              {!elderly ? (
+                <View style={styles.emptyState}>
+                  <User size={48} color="#999" />
+                  <Text style={styles.emptyText}>Primero debes crear un adulto mayor</Text>
+                  <Text style={styles.emptySubtext}>
+                    Ve a la pestaña "Persona Mayor" para crear el perfil
+                  </Text>
+                </View>
+              ) : trustedContacts.length === 0 ? (
                 <View style={styles.emptyState}>
                   <User size={48} color="#999" />
                   <Text style={styles.emptyText}>No hay contactos de confianza</Text>
@@ -391,7 +614,7 @@ export default function ContactsScreen() {
               ) : (
                 <FlatList
                   data={trustedContacts}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => item.id.toString()}
                   contentContainerStyle={{ paddingVertical: 4 }}
                   renderItem={({ item }) => (
                     <View style={styles.contactCard}>
@@ -420,13 +643,96 @@ export default function ContactsScreen() {
                 />
               )}
 
-              <TouchableOpacity style={styles.addButton} onPress={() => setShowContactModal(true)}>
-                <Text style={styles.addButtonText}>Agregar nuevo contacto de confianza</Text>
-              </TouchableOpacity>
+              {elderly && (
+                <TouchableOpacity style={styles.addButton} onPress={() => setShowContactModal(true)}>
+                  <Text style={styles.addButtonText}>Agregar nuevo contacto de confianza</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
       )}
+
+      {/* Modal Crear Adulto Mayor */}
+      <Modal visible={showCreateElderlyModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreateElderlyModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Crear Adulto Mayor</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowCreateElderlyModal(false)}>
+              <X size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Nombre Completo *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.name}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, name: text }))}
+                placeholder="Nombre completo"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Teléfono *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.phone}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, phone: text }))}
+                placeholder="Número de teléfono"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Fecha de Nacimiento *</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newElderlyData.birthdate}
+                onChangeText={(text) => {
+                  const formatted = formatBirthdate(text);
+                  setNewElderlyData((prev) => ({ ...prev, birthdate: formatted }));
+                }}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Dirección *</Text>
+              <TextInput
+                style={[styles.modalInput, styles.multilineInput]}
+                value={newElderlyData.address}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, address: text }))}
+                placeholder="Dirección completa"
+                multiline
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Información Médica *</Text>
+              <TextInput
+                style={[styles.modalInput, styles.multilineInput]}
+                value={newElderlyData.medicalInfo}
+                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, medicalInfo: text }))}
+                placeholder="Condiciones médicas, medicamentos, alergias"
+                multiline
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalSaveButton}
+              onPress={handleCreateElderly}
+            >
+              <Text style={styles.modalSaveButtonText}>Crear Adulto Mayor</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* Modal Agregar/Editar contacto */}
       <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
@@ -450,13 +756,16 @@ export default function ContactsScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Relación</Text>
-              <TextInput
+              <Text style={styles.inputLabel}>Relación *</Text>
+              <TouchableOpacity
                 style={styles.modalInput}
-                value={newContact.relationship}
-                onChangeText={(text) => setNewContact((prev) => ({ ...prev, relationship: text }))}
-                placeholder="Ej: Hijo, Médico, Vecino"
-              />
+                onPress={() => setShowRelationPicker(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={newContact.relationship ? styles.pickerButtonText : styles.pickerPlaceholder}>
+                  {newContact.relationship || 'Selecciona una relación'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -469,7 +778,6 @@ export default function ContactsScreen() {
                 }
                 placeholder="Número de teléfono"
                 keyboardType="phone-pad"
-                inputMode="numeric"
               />
             </View>
 
@@ -497,6 +805,39 @@ export default function ContactsScreen() {
                 <Text style={styles.confirmDeleteText}>Eliminar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal selector de relación */}
+      <Modal visible={showRelationPicker} transparent animationType="slide" onRequestClose={() => setShowRelationPicker(false)}>
+        <View style={styles.relationBackdrop}>
+          <View style={styles.relationCard}>
+            <Text style={styles.relationTitle}>Seleccionar relación</Text>
+            {[
+              'Hijo/Hija',
+              'Cónyuge',
+              'Médico',
+              'Vecino',
+              'Amigo',
+              'Cuidador',
+              'Otro',
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={styles.relationOption}
+                onPress={() => {
+                  setNewContact((prev) => ({ ...prev, relationship: opt }));
+                  setShowRelationPicker(false);
+                }}
+              >
+                <Text style={styles.relationOptionText}>{opt}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity style={styles.relationCancel} onPress={() => setShowRelationPicker(false)}>
+              <Text style={styles.relationCancelText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -666,6 +1007,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
+  pickerButtonText: { fontSize: 16, color: '#111' },
+  pickerPlaceholder: { fontSize: 16, color: '#9CA3AF' },
   modalSaveButton: {
     backgroundColor: BRAND,
     paddingVertical: 14,
@@ -697,4 +1040,35 @@ const styles = StyleSheet.create({
     borderLeftColor: '#f44336',
   },
   errorText: { color: '#c62828', fontSize: 14, textAlign: 'center' },
+  // Relation picker modal
+  relationBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  relationCard: { backgroundColor: 'white', padding: 16, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  relationTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 8 },
+  relationOption: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  relationOptionText: { fontSize: 16, color: '#111' },
+  relationCancel: { marginTop: 8, paddingVertical: 12, alignItems: 'center' },
+  relationCancelText: { fontSize: 16, color: '#6B7280' },
+
+  // Token box
+  tokenBox: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  tokenLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  tokenValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: BRAND,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
 });
