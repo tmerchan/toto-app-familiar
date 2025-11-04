@@ -61,10 +61,58 @@ export default function HomeScreen() {
     return `${dayName}, ${day} de ${month}`;
   };
 
-  const navigateToReminders = () => router.push('/reminders');
-  const navigateToHistory = () => router.push('/history');
+  const navigateToReminders = () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder configurar recordatorios.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+    router.push('/reminders');
+  };
+
+  const navigateToHistory = () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder revisar el historial de alertas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+    router.push('/history');
+  };
 
   const openWhatsApp = async () => {
+    if (!elderly) {
+      Alert.alert(
+        'Adulto Mayor No Registrado',
+        'Primero debes registrar a un adulto mayor para poder comunicarte por WhatsApp.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Registrar Ahora', 
+            onPress: () => router.push('/(tabs)/contacts')
+          }
+        ]
+      );
+      return;
+    }
+
     if (!elderly?.phone) {
       Alert.alert('Error', 'No hay número de teléfono disponible para el adulto mayor');
       return;
