@@ -75,12 +75,12 @@ const faqData: FAQItem[] = [
   },
   {
     question: '¿La app funciona sin conexión a internet?',
-    answer: 'Algunas funciones como los recordatorios locales funcionan sin internet, pero las alertas a contactos por WhatsApp y el asistente de voz requieren conexión activa.',
+    answer: 'El único módulo que funciona sin conexión es el de detección de caídas. En caso de que ocurra una caída sin conexión, la app guarda la alerta y envía los mensajes automáticamente cuando se recupera el acceso a internet.',
     category: 'technical',
   },
   {
     question: '¿Mis datos están seguros?',
-    answer: 'Sí. Todos los datos se almacenan de forma segura y encriptada en Supabase. El audio para detección de caídas se procesa localmente en el dispositivo. Lee nuestra Política de Privacidad para más información.',
+    answer: 'Sí. Todos los datos se almacenan de forma segura y encriptada. El audio para detección de caídas se procesa localmente en el dispositivo. Lee nuestra Política de Privacidad para más información.',
     category: 'technical',
   },
   {
@@ -90,7 +90,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: '¿Qué hago si la detección de caídas no funciona?',
-    answer: 'Asegúrate de haber dado permiso de micrófono a la app y que el módulo de Prevención esté activo (siempre lo está por defecto). El servicio debe permanecer en primer plano. Si el problema persiste, verifica que no haya aplicaciones que interfieran con el micrófono.',
+    answer: 'Asegúrate de haber dado permiso de micrófono a la app. El servicio debe permanecer en primer plano. Si el problema persiste, verifica que no haya aplicaciones que interfieran con el micrófono.',
     category: 'technical',
   },
   {
