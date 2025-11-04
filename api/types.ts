@@ -51,10 +51,15 @@ export interface ContactDTO {
 export interface ReminderDTO {
     id?: number;
     elderlyId: number;
+    reminderType: 'MEDICATION' | 'APPOINTMENT' | 'EVENT';
     title: string;
     description?: string;
     reminderTime: string; // ISO 8601 format
-    repeatPattern?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'NONE';
+    repeatPattern?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'NONE';
+    dosage?: string;
+    doctor?: string;
+    location?: string;
+    leadTimeMinutes?: number;
     active?: boolean;
     createdAt?: string;
     updatedAt?: string;

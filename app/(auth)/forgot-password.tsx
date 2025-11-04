@@ -8,11 +8,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image
+  Image,
+  Linking
 } from 'react-native';
 import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
+
+const SUPPORT_PHONE = '+5491159753115';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -24,6 +27,26 @@ export default function ForgotPasswordScreen() {
       console.error('Navigation error:', error);
     }
   };
+
+  const handleContactSupport = () => {
+    const url = `whatsapp://send?phone=${SUPPORT_PHONE}&text=${encodeURIComponent('Hola, necesito ayuda con la recuperación de mi contraseña.')}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert(
+            'WhatsApp no disponible',
+            'Por favor instala WhatsApp para contactar con soporte.'
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening WhatsApp:', err);
+        Alert.alert('Error', 'No se pudo abrir WhatsApp');
+      });
+  };
+
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -181,7 +204,7 @@ export default function ForgotPasswordScreen() {
             Si tienes problemas para recuperar tu cuenta, puedes contactar
             a nuestro equipo de soporte técnico.
           </Text>
-          <TouchableOpacity style={styles.supportButton}>
+          <TouchableOpacity style={styles.supportButton} onPress={handleContactSupport}>
             <Text style={styles.supportButtonText}>Contactar Soporte</Text>
           </TouchableOpacity>
         </View>

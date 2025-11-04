@@ -6,6 +6,8 @@ import { useFonts, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-d
 import { ProfileProvider } from '../context/profile-context';
 import { AuthProvider } from '../context/auth-context';
 import { ElderlyProvider } from '../context/elderly-context';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import '../utils/errorConfig'; // Configure error handling
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
@@ -47,7 +49,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <AuthProvider>
         <ElderlyProvider>
           <ProfileProvider>
@@ -60,6 +62,6 @@ export default function RootLayout() {
           </ProfileProvider>
         </ElderlyProvider>
       </AuthProvider>
-    </>
+    </ErrorBoundary>
   );
 }

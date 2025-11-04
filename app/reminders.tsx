@@ -83,47 +83,28 @@ const fromDTO = (dto: ReminderDTO): Reminder => {
   const hh = String(reminderDate.getHours()).padStart(2, '0');
   const min = String(reminderDate.getMinutes()).padStart(2, '0');
 
-  // Parse description for extra fields (format: type|key:value|key:value|...)
-  const parts = (dto.description || '').split('|');
-  const type = (parts[0] || 'medication') as 'medication' | 'appointment' | 'event';
-
-  let dosage: string | undefined;
-  let doctor: string | undefined;
-  let location: string | undefined;
-  let leadTimeMinutes: number | undefined;
-  let description = '';
-
-  for (let i = 1; i < parts.length; i++) {
-    const part = parts[i];
-    if (part.startsWith('dosage:')) {
-      dosage = part.substring(7);
-    } else if (part.startsWith('doctor:')) {
-      doctor = part.substring(7);
-    } else if (part.startsWith('location:')) {
-      location = part.substring(9);
-    } else if (part.startsWith('leadTime:')) {
-      leadTimeMinutes = parseInt(part.substring(9), 10);
-    } else {
-      description = part;
-    }
-  }
+  // Map reminderType from backend enum to local type
+  const type = dto.reminderType === 'MEDICATION' ? 'medication' :
+    dto.reminderType === 'APPOINTMENT' ? 'appointment' :
+      dto.reminderType === 'EVENT' ? 'event' : 'medication';
 
   return {
     id: dto.id || 0,
     type,
     title: dto.title,
-    description,
+    description: dto.description || '',
     date: `${dd}/${mm}/${yyyy}`,
     time: `${hh}:${min}`,
     isActive: dto.active ?? true,
     frequency: dto.repeatPattern === 'DAILY' ? 'daily' :
       dto.repeatPattern === 'WEEKLY' ? 'weekly' :
         dto.repeatPattern === 'MONTHLY' ? 'monthly' :
-          dto.repeatPattern === 'NONE' ? 'once' : 'once',
-    dosage,
-    doctor,
-    location,
-    leadTimeMinutes
+          dto.repeatPattern === 'YEARLY' ? 'yearly' :
+            dto.repeatPattern === 'NONE' ? 'once' : 'once',
+    dosage: dto.dosage,
+    doctor: dto.doctor,
+    location: dto.location,
+    leadTimeMinutes: dto.leadTimeMinutes
   };
 };
 
@@ -134,24 +115,27 @@ const toDTO = (reminder: Partial<Reminder>, elderlyId: number): Omit<ReminderDTO
   const timeParts = (reminder.time || '').split(':');
   const isoString = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${timeParts[0]}:${timeParts[1]}:00`;
 
-  // Encode extra data into description field
-  const descParts: string[] = [reminder.type || 'medication'];
-  if (reminder.dosage) descParts.push(`dosage:${reminder.dosage}`);
-  if (reminder.doctor) descParts.push(`doctor:${reminder.doctor}`);
-  if (reminder.location) descParts.push(`location:${reminder.location}`);
-  if (reminder.leadTimeMinutes) descParts.push(`leadTime:${reminder.leadTimeMinutes}`);
-  if (reminder.description) descParts.push(reminder.description);
+  // Map reminder type to uppercase enum
+  const reminderType = reminder.type === 'medication' ? 'MEDICATION' :
+    reminder.type === 'appointment' ? 'APPOINTMENT' :
+      reminder.type === 'event' ? 'EVENT' : 'MEDICATION';
 
   return {
     elderlyId,
+    reminderType,
     title: reminder.title || '',
-    description: descParts.join('|'),
+    description: reminder.description || '',
     reminderTime: isoString,
     repeatPattern: reminder.frequency === 'daily' ? 'DAILY' :
       reminder.frequency === 'weekly' ? 'WEEKLY' :
-        reminder.frequency === 'monthly' ? 'MONTHLY' : 'NONE',
+        reminder.frequency === 'monthly' ? 'MONTHLY' :
+          reminder.frequency === 'yearly' ? 'YEARLY' : 'NONE',
+    dosage: reminder.dosage,
+    doctor: reminder.doctor,
+    location: reminder.location,
+    leadTimeMinutes: reminder.leadTimeMinutes,
     active: reminder.isActive ?? true
-  };
+  } as Omit<ReminderDTO, 'id' | 'createdAt' | 'updatedAt'>;
 };
 
 export default function RemindersScreen() {

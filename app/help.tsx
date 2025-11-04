@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StatusBar,
   Modal,
+  Linking,
+  Alert,
 } from 'react-native';
 import { ChevronLeft, ChevronDown, ChevronUp, Info, MessageCircle, Phone } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 const BRAND = '#6B8E23';
+const SUPPORT_PHONE = '+5491159753115';
 
 interface FAQItem {
   question: string;
@@ -136,6 +139,29 @@ export default function HelpScreen() {
     } catch (error) {
       console.error('Navigation error:', error);
     }
+  };
+
+  const handleContactSupport = (type: 'chat' | 'call') => {
+    const message = type === 'chat' 
+      ? 'Hola, necesito ayuda con la aplicación Toto.'
+      : 'Hola, necesito hablar con soporte técnico de Toto.';
+    
+    const url = `whatsapp://send?phone=${SUPPORT_PHONE}&text=${encodeURIComponent(message)}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert(
+            'WhatsApp no disponible',
+            'Por favor instala WhatsApp para contactar con soporte.'
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening WhatsApp:', err);
+        Alert.alert('Error', 'No se pudo abrir WhatsApp');
+      });
   };
 
   const toggleFAQ = (index: number) => {
@@ -283,12 +309,15 @@ export default function HelpScreen() {
               Si no encontraste la respuesta que buscabas, contáctanos:
             </Text>
 
-            <TouchableOpacity style={styles.contactButton}>
+            <TouchableOpacity style={styles.contactButton} onPress={() => handleContactSupport('chat')}>
               <MessageCircle size={20} color="white" />
               <Text style={styles.contactButtonText}>Chat en Vivo</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.contactButton, styles.contactButtonSecondary]}>
+            <TouchableOpacity 
+              style={[styles.contactButton, styles.contactButtonSecondary]} 
+              onPress={() => handleContactSupport('call')}
+            >
               <Phone size={20} color={BRAND} />
               <Text style={[styles.contactButtonText, styles.contactButtonTextSecondary]}>
                 Llamar al Soporte
