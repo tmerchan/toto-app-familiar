@@ -36,13 +36,9 @@ const isPhoneValid = (s: string) => {
 };
 
 const formatBirthdate = (text: string) => {
-  // Eliminar todo lo que no sea número
   const numbers = text.replace(/[^\d]/g, '');
-  
-  // Limitar a 8 dígitos
   const limited = numbers.slice(0, 8);
   
-  // Aplicar formato DD/MM/AAAA
   if (limited.length <= 2) {
     return limited;
   } else if (limited.length <= 4) {
@@ -53,7 +49,6 @@ const formatBirthdate = (text: string) => {
 };
 
 const validateBirthdate = (dateString: string): boolean => {
-  // Verificar formato DD/MM/AAAA
   const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
   const match = dateString.match(regex);
   
@@ -63,18 +58,14 @@ const validateBirthdate = (dateString: string): boolean => {
   const month = parseInt(match[2], 10);
   const year = parseInt(match[3], 10);
   
-  // Verificar rangos básicos
   if (month < 1 || month > 12) return false;
   if (day < 1 || day > 31) return false;
   
-  // Verificar año razonable (menor de 120 años)
   const currentYear = new Date().getFullYear();
   if (year < currentYear - 120 || year > currentYear) return false;
   
-  // Verificar días por mes
   const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   
-  // Año bisiesto
   const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
   if (isLeapYear) daysInMonth[1] = 29;
   
@@ -476,7 +467,7 @@ export default function ContactsScreen() {
                         style={styles.input}
                         value={editedElderly.name}
                         onChangeText={(text) => setEditedElderly((p) => ({ ...p, name: text }))}
-                        placeholder="Nombre completo"
+                        placeholder="Nombre"
                       />
                     ) : (
                       <Text style={styles.value}>{elderly.name || 'No disponible'}</Text>
@@ -665,12 +656,12 @@ export default function ContactsScreen() {
 
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nombre Completo *</Text>
+              <Text style={styles.inputLabel}>Nombre *</Text>
               <TextInput
                 style={styles.modalInput}
                 value={newElderlyData.name}
                 onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, name: text }))}
-                placeholder="Nombre completo"
+                placeholder="Nombre"
               />
             </View>
 
@@ -751,7 +742,7 @@ export default function ContactsScreen() {
                 style={styles.modalInput}
                 value={newContact.name}
                 onChangeText={(text) => setNewContact((prev) => ({ ...prev, name: text }))}
-                placeholder="Nombre completo"
+                placeholder="Nombre"
               />
             </View>
 

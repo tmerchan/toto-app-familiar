@@ -12,7 +12,7 @@ import {
   Linking,
   Clipboard,
 } from 'react-native';
-import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle, Copy } from 'lucide-react-native';
+import { Mail, ArrowLeft, Send, CircleCheck as CheckCircle, Copy } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { apiClient } from '../../api/client';
@@ -293,7 +293,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: '5%',
+    paddingVertical: 24,
   },
   header: {
     alignItems: 'center',
@@ -353,7 +354,8 @@ const styles = StyleSheet.create({
   formContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
+    paddingVertical: 20,
+    paddingHorizontal: '5%',
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -385,8 +387,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 12,
+    minHeight: 50,
   },
   inputIcon: {
     marginRight: 12,
@@ -399,11 +401,13 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#6B8E23',
     borderRadius: 12,
-    height: 56,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 8,
   },
   buttonDisabled: {
@@ -431,7 +435,8 @@ const styles = StyleSheet.create({
   helpContainer: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal: '5%',
     alignItems: 'center',
   },
   helpTitle: {
@@ -473,7 +478,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  // Success screen styles
   successContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -580,11 +584,12 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: '#6B8E23',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderRadius: 12,
     marginBottom: 16,
     width: '100%',
+    minHeight: 50,
   },
   continueButtonText: {
     fontSize: 16,

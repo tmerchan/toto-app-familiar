@@ -8,7 +8,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image
+  Image,
+  Dimensions,
 } from 'react-native';
 import {
   Mail,
@@ -18,7 +19,6 @@ import {
   User,
   Phone,
   ArrowRight,
-  Heart,
   MapPin,
   Calendar
 } from 'lucide-react-native';
@@ -27,12 +27,14 @@ import { Link, router } from 'expo-router';
 import { useAuth } from '../../context/auth-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 const STORAGE_KEYS = {
   TERMS_ACCEPTED: '@toto_terms_accepted',
 };
 
 export default function RegisterScreen() {
-  const { register, error: authError, clearError } = useAuth();
+  const { register, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -89,16 +91,13 @@ export default function RegisterScreen() {
         role: 'CAREGIVER',
       });
 
-      // Guardar que aceptó los términos
       await AsyncStorage.setItem(STORAGE_KEYS.TERMS_ACCEPTED, 'true');
 
-      // Redirigir a la app principal
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Register error:', error);
       const errorMessage = error?.message || 'Error al registrarse. Intenta nuevamente.';
 
-      // Show field errors if available
       if (error?.fieldErrors) {
         const fieldErrors = Object.entries(error.fieldErrors)
           .map(([field, message]) => `${field}: ${message}`)
@@ -113,13 +112,9 @@ export default function RegisterScreen() {
   };
 
   const formatBirthdate = (text: string) => {
-    // Eliminar todo lo que no sea número
     const numbers = text.replace(/[^\d]/g, '');
-    
-    // Limitar a 8 dígitos
     const limited = numbers.slice(0, 8);
     
-    // Aplicar formato DD/MM/AAAA
     if (limited.length <= 2) {
       return limited;
     } else if (limited.length <= 4) {
@@ -135,7 +130,6 @@ export default function RegisterScreen() {
   };
 
   const validateBirthdate = (dateString: string): boolean => {
-    // Verificar formato DD/MM/AAAA
     const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
     const match = dateString.match(regex);
     
@@ -145,18 +139,14 @@ export default function RegisterScreen() {
     const month = parseInt(match[2], 10);
     const year = parseInt(match[3], 10);
     
-    // Verificar rangos básicos
     if (month < 1 || month > 12) return false;
     if (day < 1 || day > 31) return false;
     
-    // Verificar año razonable (mayor de 18 años y menor de 120 años)
     const currentYear = new Date().getFullYear();
     if (year < currentYear - 120 || year > currentYear - 18) return false;
     
-    // Verificar días por mes
     const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     
-    // Año bisiesto
     const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
     if (isLeapYear) daysInMonth[1] = 29;
     
@@ -205,7 +195,7 @@ export default function RegisterScreen() {
               <User size={20} color="#6B7280" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Nombre completo"
+                placeholder="Nombre"
                 value={formData.name}
                 onChangeText={(text) => updateFormData('name', text)}
                 autoCapitalize="words"
@@ -376,38 +366,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2EFEB', // Color beige
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'flex-start',
+    paddingHorizontal: SCREEN_WIDTH * 0.05, // 5% del ancho de pantalla
     paddingVertical: 24,
     width: '100%',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: SCREEN_WIDTH < 340 ? 24 : 40,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
     marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   logoImage: {
-    width: 200,
-    height: 200,
+    width: Math.min(SCREEN_WIDTH * 0.72, 300),
+    height: Math.min(SCREEN_WIDTH * 0.30, 140),
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 32,
@@ -423,13 +405,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   formContainer: {
-    width: '97%',
-    maxWidth: 680,
+    width: '100%',
+    maxWidth: 500,
     alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
-    paddingVertical: 28,
-    paddingHorizontal: 40,
+    paddingVertical: SCREEN_WIDTH < 340 ? 16 : 20,
+    paddingHorizontal: Math.max(SCREEN_WIDTH * 0.05, 12), // Mínimo 12px, 5% del ancho
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -454,8 +436,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: Math.max(SCREEN_WIDTH * 0.03, 10), // Mínimo 10px, máximo 3% del ancho
+    paddingVertical: SCREEN_WIDTH < 340 ? 10 : 14,
+    minHeight: SCREEN_WIDTH < 340 ? 44 : 50,
   },
   inputIcon: {
     marginRight: 12,
@@ -510,12 +493,14 @@ const styles = StyleSheet.create({
   registerButton: {
     backgroundColor: '#6B8E23',
     borderRadius: 12,
-    height: 56,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
     marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 8,
   },
   buttonDisabled: {
@@ -527,18 +512,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   loginContainer: {
-    flexDirection: 'row',
+    width: '100%',
+    flexDirection: SCREEN_WIDTH < 340 ? 'column' : 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+    marginTop: SCREEN_WIDTH < 340 ? 16 : 24,
   },
   loginText: {
-    fontSize: 14,
+    fontSize: SCREEN_WIDTH < 340 ? 13 : 14,
     color: '#6B7280',
+    textAlign: 'center',
   },
   loginLink: {
-    fontSize: 14,
+    fontSize: SCREEN_WIDTH < 340 ? 13 : 14,
     color: '#6B8E23',
     fontWeight: '600',
+    textAlign: 'center',
   },
 });

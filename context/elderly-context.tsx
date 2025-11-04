@@ -42,7 +42,6 @@ export function ElderlyProvider({ children }: ElderlyProviderProps) {
             
             const elderlyList = await apiClient.getElderlyUnderCare();
 
-            // Take the first elderly person (we only support one)
             if (elderlyList && elderlyList.length > 0) {
                 setElderly(elderlyList[0]);
                 setError(null);
@@ -52,17 +51,13 @@ export function ElderlyProvider({ children }: ElderlyProviderProps) {
                 setElderly(null);
             }
         } catch (err: any) {
-            // Only log to console, don't show intrusive errors
             console.log('[ElderlyContext] Error loading elderly (attempt ' + (retryCount + 1) + '):', err.message || err);
             
-            // Set error state but don't crash the app
             const apiError = err as ApiError;
             setError(apiError);
             
-            // Auto-retry logic for network errors (max 3 attempts)
             if (retryCount < 2 && (!apiError.status || apiError.status >= 500)) {
                 setRetryCount(retryCount + 1);
-                // Retry after exponential backoff (2s, 4s, 8s)
                 const delay = Math.pow(2, retryCount + 1) * 1000;
                 setTimeout(() => {
                     loadElderly(true);

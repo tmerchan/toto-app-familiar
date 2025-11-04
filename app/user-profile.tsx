@@ -191,7 +191,7 @@ export default function UserProfileScreen() {
         <View style={styles.fieldsContainer}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
 
-          {renderField(<User size={20} color="#6B8E23" />, 'Nombre completo', editedData.name, 'name')}
+          {renderField(<User size={20} color="#6B8E23" />, 'Nombre', editedData.name, 'name')}
           {renderField(<Mail size={20} color="#6B8E23" />, 'Correo electrónico', editedData.email, 'email')}
           {renderField(<Phone size={20} color="#6B8E23" />, 'Teléfono', editedData.phone, 'phone')}
           {renderField(<MapPin size={20} color="#6B8E23" />, 'Dirección', editedData.address, 'address')}

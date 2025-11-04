@@ -45,13 +45,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (storedUser[1] && accessToken[1]) {
                 setUser(JSON.parse(storedUser[1]));
 
-                // Optionally verify token is still valid
                 try {
                     const currentUser = await apiClient.getCurrentUser();
                     setUser(currentUser);
                     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
                 } catch (error) {
-                    // Token invalid, clear auth
                     await clearAuth();
                 }
             }
@@ -69,7 +67,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             [STORAGE_KEYS.USER, JSON.stringify(userData)],
         ];
 
-        // Solo guardar tokens si no son null (para casos de CAREGIVER)
         if (accessToken) {
             storageItems.push([STORAGE_KEYS.ACCESS_TOKEN, accessToken]);
         }
@@ -95,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const rawTerms = await AsyncStorage.getItem('@acceptedTerms');
             return !rawTerms || !JSON.parse(rawTerms);
         } catch {
-            return true; // Si hay error, asumir que necesita aceptar términos
+            return true;
         }
     };
 
@@ -104,7 +101,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setIsLoading(true);
             setError(null);
 
-            // Validate that email and password are not empty
             if (!credentials.email || !credentials.email.trim()) {
                 throw {
                     message: 'El correo electrónico es requerido',

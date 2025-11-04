@@ -27,13 +27,11 @@ interface Alert {
   elderName: string;
 }
 
-// Helper function to capitalize first letter
 const capitalizeFirst = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-// Helper to parse JSON details
 const parseDetails = (details: string | null | undefined): any => {
   if (!details) return null;
   try {
@@ -43,7 +41,6 @@ const parseDetails = (details: string | null | undefined): any => {
   }
 };
 
-// Helper to convert HistoryEventDTO to local Alert format
 const fromDTO = async (dto: HistoryEventDTO): Promise<Alert> => {
   const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
   const dd = String(timestamp.getDate()).padStart(2, '0');
@@ -52,7 +49,6 @@ const fromDTO = async (dto: HistoryEventDTO): Promise<Alert> => {
   const hh = String(timestamp.getHours()).padStart(2, '0');
   const min = String(timestamp.getMinutes()).padStart(2, '0');
 
-  // Map eventType to AlertType and generate descriptive titles
   let type: AlertType = 'fall';
   let title = dto.eventType;
   let description = dto.details || '';
@@ -60,20 +56,11 @@ const fromDTO = async (dto: HistoryEventDTO): Promise<Alert> => {
   const eventTypeLower = dto.eventType.toLowerCase();
   const detailsJson = parseDetails(dto.details);
   
-  // Debug logging
-  console.log('Processing event:', {
-    eventType: dto.eventType,
-    details: dto.details,
-    parsedDetails: detailsJson
-  });
-  
-  // Try to fetch reminder title if we have reminderId but no title in details
   let reminderTitle: string | null = null;
   if (detailsJson?.reminderId && !detailsJson?.title) {
     try {
       const reminder = await apiClient.getReminderById(detailsJson.reminderId);
       reminderTitle = reminder.title;
-      console.log('Fetched reminder title from API:', reminderTitle);
     } catch (error) {
       console.error('Error fetching reminder:', error);
     }
@@ -138,17 +125,13 @@ export default function HistoryScreen() {
   const [activeFilter, setActiveFilter] = useState<AlertType | 'all'>('all');
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
-  // Load history from API
   const loadHistory = async () => {
-    // Use elderly's ID instead of the caregiver's ID
     if (!elderly?.id) {
-      console.log('No elderly ID available');
       return;
     }
 
     try {
       setLoading(true);
-      // Get events from the last 30 days for the elderly person
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
@@ -156,11 +139,8 @@ export default function HistoryScreen() {
       const startStr = startDate.toISOString();
       const endStr = endDate.toISOString();
 
-      console.log('Loading history for elderly ID:', elderly.id);
       const data = await apiClient.getHistoryByUserId(elderly.id, startStr, endStr);
-      console.log('History data received:', data);
       
-      // Map events to alerts, handling async fromDTO
       const alertsPromises = data.map(fromDTO);
       const alertsData = await Promise.all(alertsPromises);
       setAlerts(alertsData);
@@ -172,7 +152,6 @@ export default function HistoryScreen() {
     }
   };
 
-  // Load history when component mounts or elderly changes
   useEffect(() => {
     if (elderly?.id) {
       loadHistory();
