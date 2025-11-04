@@ -11,6 +11,10 @@ import type {
     HistoryEventDTO,
     ErrorResponse,
     ApiError,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
 } from './types';
 
 // API base URL - replace with your backend URL
@@ -166,6 +170,19 @@ class ApiClient {
 
     async getCurrentUser(): Promise<UserDTO> {
         const response = await this.client.get<UserDTO>('/auth/me');
+        return response.data;
+    }
+
+    async forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+        const response = await this.client.post<ForgotPasswordResponse>('/user/forgot-password', { email });
+        return response.data;
+    }
+
+    async resetPassword(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+        const response = await this.client.post<ResetPasswordResponse>('/user/reset-password', { 
+            token, 
+            newPassword 
+        });
         return response.data;
     }
     

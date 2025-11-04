@@ -142,26 +142,44 @@ export default function HelpScreen() {
   };
 
   const handleContactSupport = (type: 'chat' | 'call') => {
-    const message = type === 'chat' 
-      ? 'Hola, necesito ayuda con la aplicación Toto.'
-      : 'Hola, necesito hablar con soporte técnico de Toto.';
-    
-    const url = `whatsapp://send?phone=${SUPPORT_PHONE}&text=${encodeURIComponent(message)}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          return Linking.openURL(url);
-        } else {
-          Alert.alert(
-            'WhatsApp no disponible',
-            'Por favor instala WhatsApp para contactar con soporte.'
-          );
-        }
-      })
-      .catch((err) => {
-        console.error('Error opening WhatsApp:', err);
-        Alert.alert('Error', 'No se pudo abrir WhatsApp');
-      });
+    if (type === 'call') {
+      // Open phone dialer with number
+      const phoneUrl = `tel:${SUPPORT_PHONE}`;
+      Linking.canOpenURL(phoneUrl)
+        .then((supported) => {
+          if (supported) {
+            return Linking.openURL(phoneUrl);
+          } else {
+            Alert.alert(
+              'Error',
+              'No se pudo abrir el teléfono'
+            );
+          }
+        })
+        .catch((err) => {
+          console.error('Error opening phone:', err);
+          Alert.alert('Error', 'No se pudo abrir el teléfono');
+        });
+    } else {
+      // Open WhatsApp
+      const message = 'Hola, necesito ayuda con la aplicación Toto.';
+      const whatsappUrl = `whatsapp://send?phone=${SUPPORT_PHONE}&text=${encodeURIComponent(message)}`;
+      Linking.canOpenURL(whatsappUrl)
+        .then((supported) => {
+          if (supported) {
+            return Linking.openURL(whatsappUrl);
+          } else {
+            Alert.alert(
+              'WhatsApp no disponible',
+              'Por favor instala WhatsApp para contactar con soporte.'
+            );
+          }
+        })
+        .catch((err) => {
+          console.error('Error opening WhatsApp:', err);
+          Alert.alert('Error', 'No se pudo abrir WhatsApp');
+        });
+    }
   };
 
   const toggleFAQ = (index: number) => {

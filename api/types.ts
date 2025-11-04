@@ -87,3 +87,22 @@ export interface ApiError {
     status?: number;
     fieldErrors?: Record<string, string>;
 }
+
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ForgotPasswordResponse {
+    message: string;
+    token: string;
+    note: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
+}

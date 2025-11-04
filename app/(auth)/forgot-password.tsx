@@ -14,6 +14,7 @@ import {
 import { Mail, ArrowLeft, Send, Heart, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
+import { apiClient } from '../../api/client';
 
 const SUPPORT_PHONE = '+5491159753115';
 
@@ -47,9 +48,29 @@ export default function ForgotPasswordScreen() {
       });
   };
 
+  const handleCallSupport = () => {
+    const url = `tel:${SUPPORT_PHONE}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          Alert.alert(
+            'Error',
+            'No se pudo abrir el teléfono'
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error opening phone:', err);
+        Alert.alert('Error', 'No se pudo abrir el teléfono');
+      });
+  };
+
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resetToken, setResetToken] = useState('');
 
   const handleSendReset = async () => {
     if (!email) {
@@ -65,15 +86,29 @@ export default function ForgotPasswordScreen() {
 
     setIsLoading(true);
 
-    // Simular envío de email
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await apiClient.forgotPassword(email);
+      setResetToken(response.token);
       setEmailSent(true);
-    }, 2000);
+      Alert.alert(
+        'Token Generado', 
+        `Token de recuperación: ${response.token}\n\nEn producción, este se enviaría por email.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Error requesting password reset:', error);
+      Alert.alert(
+        'Error', 
+        error.message || 'No se pudo procesar tu solicitud. Verifica que el email esté registrado.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendEmail = () => {
     setEmailSent(false);
+    setResetToken('');
     handleSendReset();
   };
 
@@ -89,15 +124,30 @@ export default function ForgotPasswordScreen() {
               <CheckCircle size={60} color="#10B981" />
             </View>
 
-            <Text style={styles.successTitle}>¡Correo enviado!</Text>
+            <Text style={styles.successTitle}>¡Token Generado!</Text>
             <Text style={styles.successMessage}>
-              Te hemos enviado un correo con las instrucciones para restablecer tu contraseña a:
+              Se ha generado un token de recuperación para:
             </Text>
             <Text style={styles.emailText}>{email}</Text>
 
+            <View style={styles.tokenContainer}>
+              <Text style={styles.tokenLabel}>Token de recuperación:</Text>
+              <Text style={styles.tokenText}>{resetToken}</Text>
+              <Text style={styles.tokenNote}>
+                ⚠️ Copia este token. En producción, se enviaría por email.
+              </Text>
+            </View>
+
             <Text style={styles.instructionText}>
-              Revisa tu bandeja de entrada y sigue las instrucciones recibidas. Si no lo ves, verifica la carpeta de spam.
+              Usa este token en la siguiente pantalla para restablecer tu contraseña.
             </Text>
+
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={() => router.push('/(auth)/reset-password' as any)}
+            >
+              <Text style={styles.continueButtonText}>Continuar al reseteo</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.resendButton}
@@ -205,7 +255,10 @@ export default function ForgotPasswordScreen() {
             a nuestro equipo de soporte técnico.
           </Text>
           <TouchableOpacity style={styles.supportButton} onPress={handleContactSupport}>
-            <Text style={styles.supportButtonText}>Contactar Soporte</Text>
+            <Text style={styles.supportButtonText}>Chat en Vivo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.callButton} onPress={handleCallSupport}>
+            <Text style={styles.callButtonText}>Llamar al Soporte</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -382,11 +435,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+    marginBottom: 12,
   },
   supportButtonText: {
     fontSize: 14,
     color: '#6B8E23',
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  callButton: {
+    backgroundColor: '#6B8E23',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  callButtonText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   // Success screen styles
   successContainer: {
@@ -450,6 +517,52 @@ const styles = StyleSheet.create({
   backToLoginText: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
+  },
+  tokenContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: '100%',
+  },
+  tokenLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  tokenText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#6B8E23',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6B8E23',
+    marginBottom: 8,
+  },
+  tokenNote: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  continueButton: {
+    backgroundColor: '#6B8E23',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    width: '100%',
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
     textAlign: 'center',
   },
 });
