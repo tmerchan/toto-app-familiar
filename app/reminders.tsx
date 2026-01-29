@@ -620,11 +620,24 @@ export default function RemindersScreen() {
                       });
                     }}
                   >
-                    {getTypeIcon(type)}
+                    {formData.type === type ? (
+                      <>
+                        {(() => {
+                          switch (type) {
+                            case 'medication': return <Pill size={20} color="white" />;
+                            case 'appointment': return <CalendarIcon size={20} color="white" />;
+                            case 'event': return <Clock size={20} color="white" />;
+                            default: return <Bell size={20} color="white" />;
+                          }
+                        })()}
+                      </>
+                    ) : (
+                      getTypeIcon(type)
+                    )}
                     <Text
                       style={[
                         styles.typeButtonText,
-                        formData.type === type && { color: getTypeColor(type) }
+                        formData.type === type && { color: 'white' }
                       ]}
                       numberOfLines={2}
                     >
@@ -1035,7 +1048,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activeTypeButton: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#A0D8E8',
+    borderWidth: 2,
   },
   typeButtonText: {
     fontSize: 13,

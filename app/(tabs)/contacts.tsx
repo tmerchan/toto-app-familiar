@@ -90,8 +90,7 @@ export default function ContactsScreen() {
     name: '',
     birthdate: '',
     phone: '',
-    address: '',
-    medicalInfo: ''
+    address: ''
   });
 
   const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
@@ -110,8 +109,7 @@ export default function ContactsScreen() {
     name: '',
     birthdate: '',
     phone: '',
-    address: '',
-    medicalInfo: ''
+    address: ''
   });
 
   // Cargar contactos desde el backend
@@ -159,8 +157,7 @@ export default function ContactsScreen() {
         name: elderly.name || '',
         birthdate: elderly.birthdate || '',
         phone: elderly.phone || '',
-        address: elderly.address || '',
-        medicalInfo: elderly.medicalInfo || ''
+        address: elderly.address || ''
       });
     }
   }, [elderly?.id]);
@@ -180,8 +177,7 @@ export default function ContactsScreen() {
         name: editedElderly.name,
         birthdate: editedElderly.birthdate,
         phone: editedElderly.phone,
-        address: editedElderly.address,
-        medicalInfo: editedElderly.medicalInfo
+        address: editedElderly.address
       });
       await refreshElderly(); // Recargar datos del elderly
       setIsEditing(false);
@@ -207,8 +203,7 @@ export default function ContactsScreen() {
               name: elderly.name || '',
               birthdate: elderly.birthdate || '',
               phone: elderly.phone || '',
-              address: elderly.address || '',
-              medicalInfo: elderly.medicalInfo || ''
+              address: elderly.address || ''
             });
           }
           setIsEditing(false);
@@ -345,9 +340,9 @@ export default function ContactsScreen() {
   };
 
   const handleCreateElderly = async () => {
-    const { name, birthdate, phone, address, medicalInfo } = newElderlyData;
+    const { name, birthdate, phone, address } = newElderlyData;
 
-    if (!name || !birthdate || !phone || !address || !medicalInfo) {
+    if (!name || !birthdate || !phone || !address) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
@@ -365,8 +360,7 @@ export default function ContactsScreen() {
         name,
         phone,
         address,
-        birthdate,
-        medicalInfo,
+        birthdate
       });
 
       // Crear la relación de cuidado entre el caregiver actual y el elderly
@@ -382,8 +376,7 @@ export default function ContactsScreen() {
         name: '',
         birthdate: '',
         phone: '',
-        address: '',
-        medicalInfo: ''
+        address: ''
       });
       
       Alert.alert('Éxito', 'Adulto mayor creado correctamente');
@@ -522,21 +515,6 @@ export default function ContactsScreen() {
                       />
                     ) : (
                       <Text style={styles.value}>{elderly.address || 'No disponible'}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.infoRow}>
-                    <Text style={styles.label}>Información Médica:</Text>
-                    {isEditing ? (
-                      <TextInput
-                        style={[styles.input, styles.multilineInput]}
-                        value={editedElderly.medicalInfo}
-                        onChangeText={(text) => setEditedElderly((p) => ({ ...p, medicalInfo: text }))}
-                        placeholder="Condiciones médicas, medicamentos, alergias"
-                        multiline
-                      />
-                    ) : (
-                      <Text style={styles.value}>{elderly.medicalInfo || 'No disponible'}</Text>
                     )}
                   </View>
 
@@ -698,17 +676,6 @@ export default function ContactsScreen() {
                 value={newElderlyData.address}
                 onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, address: text }))}
                 placeholder="Dirección completa"
-                multiline
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Información Médica *</Text>
-              <TextInput
-                style={[styles.modalInput, styles.multilineInput]}
-                value={newElderlyData.medicalInfo}
-                onChangeText={(text) => setNewElderlyData((prev) => ({ ...prev, medicalInfo: text }))}
-                placeholder="Condiciones médicas, medicamentos, alergias"
                 multiline
               />
             </View>
